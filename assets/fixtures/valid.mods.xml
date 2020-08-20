@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mods:mods xmlns:mods="http://www.loc.gov/mods/v3" 
+    xmlns="http://www.loc.gov/mods/v3" 
+    xmlns:drs="info://lyrasis/drs-admin/v1" 
+    xmlns:dc="http:://purl.org/elements/1.1/" 
+    xmlns:dcterms="http://purl.org/dc/terms/" 
+    xmlns:dwc="http://rs.tdwg.org/dwc/terms/" 
+    xmlns:edm="http://pro.europeana.eu/edm-documentation" 
+    xmlns:xlink="http://www.w3.org/1999/xlink" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <mods:titleInfo>
+        <mods:title lang="fr">Denver Catholic Register June 22, 1906</mods:title>
+    </mods:titleInfo>
+    <mods:name type="" usage="primary">
+        <mods:namePart>A. J. Casey</mods:namePart>
+        <mods:role>
+            <mods:roleTerm type="text">editor</mods:roleTerm>
+        </mods:role>
+    </mods:name>
+    <mods:originInfo>
+        <mods:publisher>The Register Publishing Co.</mods:publisher>
+        <mods:dateOther>June 22, 1906</mods:dateOther>
+        <mods:copyrightDate>June 22, 1906</mods:copyrightDate>
+        <mods:dateCreated>June 22, 1906</mods:dateCreated>
+    </mods:originInfo>
+    <mods:abstract>The Denver Catholic Register is the newspaper of the Diocese of Denver</mods:abstract>
+    <mods:relatedItem type="host" displayLabel="">
+        <mods:part>
+            <mods:detail type="volume">
+                <mods:caption>Vol.</mods:caption>
+                <mods:number>1</mods:number>
+            </mods:detail>
+            <mods:detail type="number">
+                <mods:caption>No.</mods:caption>
+                <mods:number>46</mods:number>
+            </mods:detail>
+            <mods:extent unit="page">
+                <mods:start>1</mods:start>
+                <mods:end>8</mods:end>
+            </mods:extent>
+            <mods:date>June 22, 1906</mods:date>
+        </mods:part>
+    </mods:relatedItem>
+    <mods:language>
+        <mods:languageTerm>English</mods:languageTerm>
+    </mods:language>
+    <mods:subject>
+        <mods:topic>Catholic News</mods:topic>
+    </mods:subject>
+    <mods:subject>
+        <mods:geographic>Colorado</mods:geographic>
+    </mods:subject>
+    <mods:location>
+        <mods:physicalLocation>Archdiocese of Denver</mods:physicalLocation>
+        <mods:holdingSimple>
+            <mods:copyInformation>
+                <mods:subLocation>Archives</mods:subLocation>
+            </mods:copyInformation>
+        </mods:holdingSimple>
+    </mods:location>
+    <mods:accessCondition>The object has been digitized for non-commercial use. You are responsible for your own use. You may need to obtain other permissions for your intended use. For example other rights such as publicity, privacy or moral rights may limit how you may use the material. For any intended commercial reproduction please contact the Archdiocese of Denver</mods:accessCondition>
+    <mods:extension>
+        <drs:dpla>
+            <edm:stateLocatedIn>Colorado</edm:stateLocatedIn>
+        </drs:dpla>
+    </mods:extension>
+</mods:mods>

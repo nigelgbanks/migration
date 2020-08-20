@@ -1,0 +1,18 @@
+[package]
+name = "migration"
+version = "0.1.0"
+authors = ["Nigel Banks <nigel.g.banks@gmail.com>"]
+readme = "README.md"
+edition = "2018"
+publish = false
+
+[[bin]]
+name = "migration"
+path = "main.rs"
+
+[dependencies]
+clap = "2.33.2"
+csv = { path = "./csv" }
+log = "0.4.11"
+logger = { path = "./logger" }
+migrate = { path = "./migrate" }

@@ -1,0 +1,17 @@
+[package]
+name = "logger"
+version = "1.0.0"
+authors = ["Nigel Banks <nigel.g.banks@gmail.com>"]
+edition = "2018"
+publish = false
+
+[lib]
+name = "logger"
+path = "lib.rs"
+test = true
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+colored = '1.9'
+log = "0.4.11"
+indicatif = "0.15.0"

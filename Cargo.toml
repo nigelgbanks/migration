@@ -1,0 +1,2 @@
+[workspace]
+members = ["src", "src/csv", "src/foxml", "src/logger", "src/migrate"]
