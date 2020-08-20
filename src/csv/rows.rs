@@ -52,6 +52,7 @@ lazy_static! {
         m.insert("islandora:newspaperPageCModel", Model::NewspaperPage);
         m.insert("islandora:compoundCModel", Model::Compound);
         m.insert("islandora:binaryCModel", Model::Binary);
+        m.insert("islandora:binaryObjectCModel", Model::Binary);
         m
     };
 }
@@ -265,6 +266,7 @@ impl<'a> NodeRow<'a> {
         // Can panic but we shouldn't have any unknown content models in the
         // dataset, so just die here if the unlikely case occurs.
         let model = Model::try_from(object.model.as_str()).unwrap();
+
         NodeRow {
             pid: &object.pid.0,
             created_date: format_date(&object.created_date),
