@@ -36,7 +36,7 @@ pub fn valid_source_directory(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub fn generate_all(input: &Path, dest: &Path, scripts: Option<&Path>, pids: Vec<&str>) {
+pub fn generate_csvs(input: &Path, dest: &Path, pids: Vec<&str>) {
     let objects = ObjectMap::from_path(&input, pids);
 
     info!("Generating csv files");
@@ -44,8 +44,11 @@ pub fn generate_all(input: &Path, dest: &Path, scripts: Option<&Path>, pids: Vec
     MediaRow::csv(&objects, dest);
     MediaRow::revisions_csv(&objects, dest);
     NodeRow::csv(&objects, dest);
+}
 
-    if let Some(scripts) = scripts {
-        scripts::run_scripts(objects, scripts, dest);
-    }
+pub fn execute_scripts(input: &Path, dest: &Path, path: &Path, pids: Vec<&str>) {
+    let objects = ObjectMap::from_path(&input, pids);
+
+    info!("Executing scripts");
+    scripts::run_scripts(objects, path, dest);
 }

@@ -46,9 +46,7 @@ pub fn get_migrate_subcommand_args<'a>(args: &'a ArgMatches) -> (&'a Path, &'a P
     (fedora_directory, output_directory, copy, checksum)
 }
 
-pub fn get_csv_subcommand_args<'a>(
-    args: &'a ArgMatches,
-) -> (&'a Path, &'a Path, Option<&'a Path>, Vec<&'a str>) {
+pub fn get_csv_subcommand_args<'a>(args: &'a ArgMatches) -> (&'a Path, &'a Path, Vec<&'a str>) {
     let input_arg = args
         .value_of("input")
         .expect("Failed to get argument --input");
@@ -59,8 +57,29 @@ pub fn get_csv_subcommand_args<'a>(
         .expect("Failed to get argument --output");
     let output_directory = Path::new(OsStr::new(output_arg));
 
-    let scripts_arg = args.value_of("scripts");
-    let scripts_directory = scripts_arg.map(|arg| Path::new(OsStr::new(arg)));
+    let limit_to_pids = match args.values_of("pids") {
+        Some(pids) => pids.collect(),
+        None => Vec::new(),
+    };
+
+    (input_directory, output_directory, limit_to_pids)
+}
+
+pub fn get_scripts_subcommand_args<'a>(
+    args: &'a ArgMatches,
+) -> (&'a Path, &'a Path, &'a Path, Vec<&'a str>) {
+    let input_arg = args
+        .value_of("input")
+        .expect("Failed to get argument --input");
+    let input_directory = Path::new(OsStr::new(input_arg));
+
+    let output_arg = args
+        .value_of("output")
+        .expect("Failed to get argument --output");
+    let output_directory = Path::new(OsStr::new(output_arg));
+
+    let scripts_arg = args.value_of("scripts").unwrap();
+    let scripts_directory = Path::new(OsStr::new(scripts_arg));
 
     let limit_to_pids = match args.values_of("pids") {
         Some(pids) => pids.collect(),
@@ -119,6 +138,38 @@ pub fn args<'a, 'b>() -> App<'a, 'b> {
                 )
     )
     .subcommand(SubCommand::with_name("csv")
+                .about("Generate CSV files from migrated Fedora data.")
+                .arg(
+                  Arg::with_name("input")
+                  .long("input")
+                  .value_name("FILE")
+                  .help("Input directory to process, this should be the same as the output directory of the `migrate` sub-command.")
+                  .required(true)
+                  .takes_value(true)
+                  .validator(valid_source_directory)
+                )
+                .arg(
+                  Arg::with_name("output")
+                  .long("output")
+                  .value_name("FILE")
+                  .help("The directory to move Fedora content to")
+                  .required(true)
+                  .takes_value(true)
+                  .validator(valid_directory)
+                )
+                .arg(
+                  Arg::with_name("pids")
+                  .short("p")
+                  .long("pids")
+                  .value_name("PID")
+                  .help("Limit the objects processed to the PIDs listed (useful for testing small migrations)")
+                  .multiple(true)
+                  .require_delimiter(true)
+                  .required(false)
+                  .takes_value(true)
+                )
+    )
+    .subcommand(SubCommand::with_name("scripts")
                 .about("Generate CSV files from migrated Fedora data.")
                 .arg(
                   Arg::with_name("input")
