@@ -128,11 +128,11 @@ impl<'a> MediaRow<'a> {
             version: &version.id,
             bundle: Self::bundle(&datastream, &version),
             created_date: format_date(&version.created_date),
-            file_size: version.path.metadata().unwrap().len(),
+            file_size: version.path().metadata().unwrap().len(),
             label: &version.label,
             mime_type: &version.mime_type,
             name: version
-                .path
+                .path()
                 .file_name()
                 .unwrap()
                 .to_string_lossy()
@@ -187,7 +187,7 @@ impl<'a> FileRow<'a> {
     fn new(tuple: (&'a Object, &'a Datastream, &'a DatastreamVersion)) -> Self {
         let (object, datastream, version) = tuple;
         let path = version
-            .path
+            .path()
             .components()
             .rev()
             .take(5)
@@ -203,7 +203,7 @@ impl<'a> FileRow<'a> {
             created_date: format_date(&version.created_date),
             mime_type: &version.mime_type,
             name: version
-                .path
+                .path()
                 .file_name()
                 .unwrap()
                 .to_string_lossy()

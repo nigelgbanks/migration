@@ -16,7 +16,7 @@ use std::fmt;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 // Map specific fedora users to Drupal users for the migration.
 lazy_static! {
@@ -73,36 +73,6 @@ impl PartialEq for Pid {
     }
 }
 
-// Maps content identifiers to file paths.
-pub type DatastreamMap = HashMap<DatastreamIdentifier, Box<Path>>;
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct DatastreamIdentifier {
-    pub pid: String,
-    pub dsid: String,
-    pub version: String,
-}
-
-impl DatastreamIdentifier {
-    // e.g datastreams/namespace:123/dsid/version/filename.ext
-    // This should match the layout of `migrate` command.
-    // This can panic, but that should never arise in practice.
-    pub fn from_path(path: &Path) -> Self {
-        let components: Vec<_> = path.components().rev().skip(1).take(3).collect();
-        DatastreamIdentifier {
-            pid: components[2].as_os_str().to_string_lossy().to_string(),
-            dsid: components[1].as_os_str().to_string_lossy().to_string(),
-            version: components[0].as_os_str().to_string_lossy().to_string(),
-        }
-    }
-}
-
-impl<'a> fmt::Display for DatastreamIdentifier {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}/{}/{}", self.pid, self.dsid, self.version)
-    }
-}
-
 #[derive(AsStaticStr, Clone, Debug, Display, Eq, PartialEq)]
 pub enum ObjectState {
     Active,
@@ -139,11 +109,40 @@ impl From<FoxmlDatastreamState> for DatastreamState {
 
 #[derive(Clone, Debug, Eq)]
 pub struct DatastreamVersion {
+    pub pid: String,
+    pub dsid: String,
     pub id: String,
     pub label: String,
     pub created_date: DateTime<FixedOffset>,
     pub mime_type: String,
-    pub path: Box<Path>,
+}
+
+impl DatastreamVersion {
+    pub fn new(pid: String, dsid: String, version: FoxmlDatastreamVersion) -> Self {
+        DatastreamVersion {
+            pid,
+            dsid,
+            id: version.id,
+            label: version.label,
+            created_date: version.created,
+            mime_type: version.mime_type,
+        }
+    }
+
+    pub fn file_name(&self) -> String {
+        foxml::extensions::version_file_name(&self.pid, &self.id, &self.label, &self.mime_type)
+    }
+
+    pub fn path(&self) -> PathBuf {
+        let lock = super::DATASTREAMS_DIRECTORY.read().unwrap();
+        let root = lock.as_ref().unwrap();
+        let path = root
+            .join(&self.pid)
+            .join(&self.dsid)
+            .join(&self.id)
+            .join(self.file_name());
+        path
+    }
 }
 
 impl Ord for DatastreamVersion {
@@ -527,10 +526,9 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(foxml: Foxml, datastream_paths: &DatastreamMap) -> Self {
+    pub fn new(foxml: Foxml) -> Self {
         let pid = foxml.pid.clone();
-        let rels_ext = Object::rels_ext(&foxml, &datastream_paths);
-        Object {
+        let mut object = Object {
             pid: Pid(foxml.pid.to_owned()),
             // Map to the appropriate Drupal user if applicable.
             owner: USER_MAP
@@ -538,8 +536,8 @@ impl Object {
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| foxml.properties.owner_id()),
             label: foxml.properties.label(),
-            model: Object::model(&rels_ext),
-            parents: Object::parents(&rels_ext),
+            model: "".to_string(),
+            parents: vec![],
             created_date: foxml.properties.created_date(),
             modified_date: foxml.properties.modified_date(),
             state: foxml.properties.state().into(),
@@ -550,21 +548,25 @@ impl Object {
                     .map(move |datastream| match datastream.control_group {
                         FoxmlControlGroup::E | FoxmlControlGroup::R => unimplemented!(),
                         FoxmlControlGroup::M | FoxmlControlGroup::X => {
-                            Object::create_datastream(&pid, datastream, datastream_paths)
+                            Object::create_datastream(&pid, datastream)
                         }
                     })
                     .collect::<Vec<Datastream>>();
                 datastreams.sort_by(|a, b| a.partial_cmp(b).unwrap());
                 datastreams
             },
-        }
+        };
+        let rels_ext = object.rels_ext();
+        object.model = Object::model(&rels_ext);
+        object.parents = Object::parents(&rels_ext);
+        object
     }
 
-    pub fn from_path(path: &Path, datastream_paths: &DatastreamMap) -> Result<Self, FoxmlError> {
+    pub fn from_path(path: &Path) -> Result<Self, FoxmlError> {
         let foxml = std::fs::read_to_string(&path)
             .unwrap_or_else(|_| panic!("Failed to read file: {}", &path.to_string_lossy()));
         let foxml = Foxml::new(&foxml)?;
-        Ok(Object::new(foxml, &datastream_paths))
+        Ok(Object::new(foxml))
     }
 
     pub fn is_system_object(&self) -> bool {
@@ -622,31 +624,19 @@ impl Object {
         }
     }
 
-    fn rels_ext(foxml: &Foxml, datastream_paths: &DatastreamMap) -> RelsExt {
-        let rels_ext = foxml
+    fn rels_ext(&self) -> RelsExt {
+        let latest_version = self
             .datastreams
             .iter()
             .find(|&datastream| datastream.id == "RELS-EXT")
+            .unwrap()
+            .versions
+            .last()
             .unwrap();
-        let identifier = DatastreamIdentifier {
-            pid: foxml.pid.clone(),
-            dsid: rels_ext.id.clone(),
-            version: rels_ext.versions.last().unwrap().id.clone(),
-        };
-        let path = match rels_ext.control_group {
-            FoxmlControlGroup::E | FoxmlControlGroup::R => unimplemented!(),
-            FoxmlControlGroup::M | FoxmlControlGroup::X => {
-                datastream_paths.get(&identifier).unwrap().clone()
-            }
-        };
-        RelsExt::from_path(&path).expect("Failed to parse RELS-EXT")
+        RelsExt::from_path(&latest_version.path()).expect("Failed to parse RELS-EXT")
     }
 
-    fn create_datastream(
-        pid: &str,
-        datastream: FoxmlDatastream,
-        datastream_paths: &DatastreamMap,
-    ) -> Datastream {
+    fn create_datastream(pid: &str, datastream: FoxmlDatastream) -> Datastream {
         let dsid = datastream.id.clone();
         Datastream {
             id: datastream.id,
@@ -656,18 +646,7 @@ impl Object {
                     .versions
                     .into_iter()
                     .map(move |version| {
-                        let identifier = DatastreamIdentifier {
-                            pid: pid.to_string(),
-                            dsid: dsid.clone(),
-                            version: version.id.clone(),
-                        };
-                        DatastreamVersion {
-                            id: version.id,
-                            label: version.label,
-                            created_date: version.created,
-                            mime_type: version.mime_type,
-                            path: datastream_paths.get(&identifier).unwrap().clone(),
-                        }
+                        DatastreamVersion::new(pid.to_string(), dsid.clone(), version)
                     })
                     .collect::<Vec<DatastreamVersion>>();
                 result.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -702,13 +681,12 @@ pub struct ObjectMap(ObjectMapInner);
 impl ObjectMap {
     pub fn from_path(input: &Path, limit_to_pids: Vec<&str>) -> Self {
         let object_paths = Self::object_files(&input, limit_to_pids);
-        let datastream_paths = Self::datastream_files(&input);
         info!("Parsing object files");
         let progress_bar = logger::progress_bar(object_paths.len() as u64);
         let inner = object_paths
             .par_iter()
             .map(|path| {
-                let object = Object::from_path(&path, &datastream_paths)?;
+                let object = Object::from_path(&path)?;
                 progress_bar.inc(1);
                 Ok((object.pid.clone(), object))
             })
@@ -784,14 +762,6 @@ impl ObjectMap {
                 .filter(|path| limit_to_pids.contains(&Pid::from_path(&path).0.as_str()))
                 .collect()
         }
-    }
-
-    // Enumerate datastream files, if limit_to_pids is non-empty restrict the files to just those whose PID matches entries in the given list.
-    fn datastream_files(directory: &Path) -> DatastreamMap {
-        files(&directory.join("datastreams"))
-            .into_par_iter()
-            .map(|path| (DatastreamIdentifier::from_path(&path), path))
-            .collect::<DatastreamMap>()
     }
 }
 

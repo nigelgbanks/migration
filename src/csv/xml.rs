@@ -131,7 +131,7 @@ where
 pub fn parse(datastream: &DatastreamVersion) -> Option<Result<CustomMap, quick_xml::Error>> {
     let valid_mime_types = vec!["application/rdf+xml", "application/xml", "text/xml"];
     if valid_mime_types.contains(&datastream.mime_type.as_str()) {
-        let file = File::open(&datastream.path).unwrap();
+        let file = File::open(&datastream.path()).unwrap();
         let reader = Reader::from_reader(BufReader::new(&file));
         Some(map(reader))
     } else {

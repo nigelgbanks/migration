@@ -2,6 +2,11 @@
 #[macro_use]
 extern crate strum_macros;
 
+#[macro_use]
+extern crate lazy_static;
+
+pub mod extensions;
+
 use chrono::{DateTime, FixedOffset};
 use serde::Deserialize;
 use std::cmp::Ordering;

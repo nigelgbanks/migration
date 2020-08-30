@@ -396,19 +396,16 @@ lazy_static! {
     };
 }
 
-pub fn generate_file_name(
-    object: &foxml::Foxml,
-    version: &foxml::FoxmlDatastreamVersion,
-) -> String {
+pub fn version_file_name(pid: &str, version: &str, label: &str, mime_type: &str) -> String {
     let extension = EXTENSIONS
-        .get(&version.mime_type.as_str())
-        .unwrap_or_else(|| panic!("No extension known for mime type: {}", &version.mime_type));
+        .get(&mime_type)
+        .unwrap_or_else(|| panic!("No extension known for mime type: {}", &mime_type));
     let is_filename = EXTENSIONS
         .values()
-        .any(|extension| version.label.ends_with(&format!(".{}", extension)));
+        .any(|extension| label.ends_with(&format!(".{}", extension)));
     if is_filename {
-        version.label.clone()
+        label.to_string()
     } else {
-        format!("{}.{}.{}", &version.id, &object.pid, &extension)
+        format!("{}.{}.{}", &version, &pid, &extension)
     }
 }

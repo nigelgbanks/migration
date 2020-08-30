@@ -20,7 +20,23 @@ pub use scripts::ScriptError;
 use log::info;
 use object::ObjectMap;
 use rows::{FileRow, MediaRow, NodeRow};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::RwLock;
+
+lazy_static! {
+    static ref OBJECTS_DIRECTORY: RwLock<Option<Box<Path>>> = RwLock::new(None);
+    static ref DATASTREAMS_DIRECTORY: RwLock<Option<Box<Path>>> = RwLock::new(None);
+}
+
+fn set_objects_directory(path: &PathBuf) {
+    let mut lock = OBJECTS_DIRECTORY.write().unwrap();
+    *lock = Some(path.clone().into_boxed_path());
+}
+
+fn set_datastreams_directory(path: &PathBuf) {
+    let mut lock = DATASTREAMS_DIRECTORY.write().unwrap();
+    *lock = Some(path.clone().into_boxed_path());
+}
 
 pub fn valid_source_directory(path: &Path) -> Result<(), String> {
     fn valid_directory(path: &Path) -> Result<(), String> {
@@ -31,14 +47,17 @@ pub fn valid_source_directory(path: &Path) -> Result<(), String> {
         }
     }
     valid_directory(&path)?;
-    valid_directory(&path.join("objects"))?;
-    valid_directory(&path.join("datastreams"))?;
+    let objects = path.join("objects");
+    valid_directory(&objects)?;
+    set_objects_directory(&objects);
+    let datastreams = path.join("datastreams");
+    valid_directory(&datastreams)?;
+    set_datastreams_directory(&datastreams);
     Ok(())
 }
 
 pub fn generate_csvs(input: &Path, dest: &Path, pids: Vec<&str>) {
     let objects = ObjectMap::from_path(&input, pids);
-
     info!("Generating csv files");
     FileRow::csv(&objects, dest);
     MediaRow::csv(&objects, dest);
@@ -48,7 +67,6 @@ pub fn generate_csvs(input: &Path, dest: &Path, pids: Vec<&str>) {
 
 pub fn execute_scripts(input: &Path, dest: &Path, path: &Path, pids: Vec<&str>) {
     let objects = ObjectMap::from_path(&input, pids);
-
     info!("Executing scripts");
     scripts::run_scripts(objects, path, dest);
 }

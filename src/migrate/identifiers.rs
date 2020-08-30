@@ -154,8 +154,12 @@ pub fn datastreams(
                             // others are things like 'MODS'. So we do a basic check to see if the version
                             // label appears to be a valid name with an known extension if so we use the label
                             // otherwise we generate one based on the the datastream.
-                            let file_name =
-                                super::extensions::generate_file_name(&object, &version);
+                            let file_name = foxml::extensions::version_file_name(
+                                &object.pid,
+                                &version.id,
+                                &version.label,
+                                &version.mime_type,
+                            );
                             let mut dest = PathBuf::from(dest);
                             dest.push(identifier.as_path());
                             dest.push(file_name);
