@@ -68,8 +68,8 @@ pub fn generate_csvs(input: &Path, dest: &Path, pids: Vec<&str>) {
 pub fn execute_scripts(
     input: &Path,
     dest: &Path,
-    scripts: &Path,
-    modules: Option<&Path>,
+    scripts: Vec<&Path>,
+    modules: Vec<&Path>,
     pids: Vec<&str>,
 ) {
     let objects = ObjectMap::from_path(&input, pids);

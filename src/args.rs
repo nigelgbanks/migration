@@ -67,7 +67,13 @@ pub fn get_csv_subcommand_args<'a>(args: &'a ArgMatches) -> (&'a Path, &'a Path,
 
 pub fn get_scripts_subcommand_args<'a>(
     args: &'a ArgMatches,
-) -> (&'a Path, &'a Path, &'a Path, Option<&'a Path>, Vec<&'a str>) {
+) -> (
+    &'a Path,
+    &'a Path,
+    Vec<&'a Path>,
+    Vec<&'a Path>,
+    Vec<&'a str>,
+) {
     let input_arg = args
         .value_of("input")
         .expect("Failed to get argument --input");
@@ -78,11 +84,15 @@ pub fn get_scripts_subcommand_args<'a>(
         .expect("Failed to get argument --output");
     let output_directory = Path::new(OsStr::new(output_arg));
 
-    let scripts_arg = args.value_of("scripts").unwrap();
-    let scripts_directory = Path::new(OsStr::new(scripts_arg));
+    let script_directories = match args.values_of("scripts") {
+        Some(directory) => directory.map(|s| Path::new(OsStr::new(s))).collect(),
+        None => Vec::new(),
+    };
 
-    let modules_arg = args.value_of("modules");
-    let modules_directory = modules_arg.map(|s| Path::new(OsStr::new(s)));
+    let modules_directories = match args.values_of("modules") {
+        Some(directory) => directory.map(|s| Path::new(OsStr::new(s))).collect(),
+        None => Vec::new(),
+    };
 
     let limit_to_pids = match args.values_of("pids") {
         Some(pids) => pids.collect(),
@@ -92,8 +102,8 @@ pub fn get_scripts_subcommand_args<'a>(
     (
         input_directory,
         output_directory,
-        scripts_directory,
-        modules_directory,
+        script_directories,
+        modules_directories,
         limit_to_pids,
     )
 }
@@ -174,7 +184,7 @@ pub fn args<'a, 'b>() -> App<'a, 'b> {
                 )
     )
     .subcommand(SubCommand::with_name("scripts")
-                .about("Generate CSV files from migrated Fedora data.")
+                .about("Execute the given scripts to generate site specific CSV files from migrated Fedora data.")
                 .arg(
                   Arg::with_name("input")
                   .long("input")
@@ -197,7 +207,9 @@ pub fn args<'a, 'b>() -> App<'a, 'b> {
                   Arg::with_name("scripts")
                   .long("scripts")
                   .value_name("FILE")
-                  .help("The directory containing scripts to customize csv generation.")
+                  .help("One or more directories containing scripts to customize csv generation.")
+                  .multiple(true)
+                  .require_delimiter(true)
                   .required(true)
                   .takes_value(true)
                   .validator(valid_directory)
@@ -206,7 +218,9 @@ pub fn args<'a, 'b>() -> App<'a, 'b> {
                   Arg::with_name("modules")
                   .long("modules")
                   .value_name("FILE")
-                  .help("The directory containing modules scripts to share functionality across script files.")
+                  .help("One or more directories containing module scripts to share functionality across script files.")
+                  .multiple(true)
+                  .require_delimiter(true)
                   .required(false)
                   .takes_value(true)
                   .validator(valid_directory)

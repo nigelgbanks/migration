@@ -5,7 +5,7 @@ use super::xml;
 use indicatif::ProgressBar;
 use log::info;
 use rayon::prelude::*;
-use rhai::module_resolvers::FileModuleResolver;
+use rhai::module_resolvers::{FileModuleResolver, ModuleResolversCollection};
 use rhai::*;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{BTreeSet, HashMap};
@@ -44,7 +44,7 @@ type Header = Vec<String>;
 type Rows = Vec<Row>;
 type ProgressBars = HashMap<Box<Path>, ProgressBar>;
 
-fn create_engine(objects: Arc<RwLock<ObjectMap>>, modules: Option<&Path>) -> Engine {
+fn create_engine(objects: Arc<RwLock<ObjectMap>>, modules: Vec<&Path>) -> Engine {
     let mut engine = Engine::new();
 
     // Custom types.
@@ -170,11 +170,13 @@ fn create_engine(objects: Arc<RwLock<ObjectMap>>, modules: Option<&Path>) -> Eng
         }
     });
 
-    // Allow modules to be registered.
-    if let Some(modules) = modules {
-        let resolver = FileModuleResolver::new_with_path(modules.canonicalize().unwrap());
-        engine.set_module_resolver(Some(resolver));
+    // Allow multiple modules directories to be registered.
+    let mut collection = ModuleResolversCollection::new();
+    for directory in modules {
+        let resolver = FileModuleResolver::new_with_path(directory.canonicalize().unwrap());
+        collection.push(resolver);
     }
+    engine.set_module_resolver(Some(collection));
 
     engine
 }
@@ -204,9 +206,11 @@ fn parse_script(path: Box<Path>, engine: &Engine) -> Result<Script, ScriptError>
 }
 
 // Parse the script files in the script folder.
-fn parse_scripts(path: &Path, engine: &Engine) -> Scripts {
+fn parse_scripts(paths: Vec<&Path>, engine: &Engine) -> Scripts {
     info!("Parsing Scripts");
-    files(&path)
+    paths
+        .into_par_iter()
+        .flat_map(|path| files(&path))
         .into_par_iter()
         .filter(|path| is_script(&path))
         .map(|path| parse_script(path, engine))
@@ -320,7 +324,7 @@ fn create_csv(header: Header, rows: Rows, dest: Box<Path>) {
     }
 }
 
-pub fn run_scripts(objects: ObjectMap, scripts: &Path, modules: Option<&Path>, dest: &Path) {
+pub fn run_scripts(objects: ObjectMap, scripts: Vec<&Path>, modules: Vec<&Path>, dest: &Path) {
     // Track our progress per script, against the total number of objects.
     let count = objects.inner().len() as u64;
 
@@ -331,7 +335,7 @@ pub fn run_scripts(objects: ObjectMap, scripts: &Path, modules: Option<&Path>, d
     let arc = Arc::new(RwLock::new(objects));
     let engine = create_engine(arc.clone(), modules);
 
-    let scripts = parse_scripts(&scripts, &engine);
+    let scripts = parse_scripts(scripts, &engine);
 
     let (multi, bars) = logger::progress_bars(count, scripts.keys().cloned());
 
