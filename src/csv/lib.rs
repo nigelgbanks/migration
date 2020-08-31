@@ -65,8 +65,13 @@ pub fn generate_csvs(input: &Path, dest: &Path, pids: Vec<&str>) {
     NodeRow::csv(&objects, dest);
 }
 
-pub fn execute_scripts(input: &Path, dest: &Path, path: &Path, pids: Vec<&str>) {
+pub fn execute_scripts(
+    input: &Path,
+    dest: &Path,
+    scripts: &Path,
+    modules: Option<&Path>,
+    pids: Vec<&str>,
+) {
     let objects = ObjectMap::from_path(&input, pids);
-    info!("Executing scripts");
-    scripts::run_scripts(objects, path, dest);
+    scripts::run_scripts(objects, scripts, modules, dest);
 }

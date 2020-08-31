@@ -67,7 +67,7 @@ pub fn get_csv_subcommand_args<'a>(args: &'a ArgMatches) -> (&'a Path, &'a Path,
 
 pub fn get_scripts_subcommand_args<'a>(
     args: &'a ArgMatches,
-) -> (&'a Path, &'a Path, &'a Path, Vec<&'a str>) {
+) -> (&'a Path, &'a Path, &'a Path, Option<&'a Path>, Vec<&'a str>) {
     let input_arg = args
         .value_of("input")
         .expect("Failed to get argument --input");
@@ -81,6 +81,9 @@ pub fn get_scripts_subcommand_args<'a>(
     let scripts_arg = args.value_of("scripts").unwrap();
     let scripts_directory = Path::new(OsStr::new(scripts_arg));
 
+    let modules_arg = args.value_of("modules");
+    let modules_directory = modules_arg.map(|s| Path::new(OsStr::new(s)));
+
     let limit_to_pids = match args.values_of("pids") {
         Some(pids) => pids.collect(),
         None => Vec::new(),
@@ -90,6 +93,7 @@ pub fn get_scripts_subcommand_args<'a>(
         input_directory,
         output_directory,
         scripts_directory,
+        modules_directory,
         limit_to_pids,
     )
 }
@@ -194,6 +198,15 @@ pub fn args<'a, 'b>() -> App<'a, 'b> {
                   .long("scripts")
                   .value_name("FILE")
                   .help("The directory containing scripts to customize csv generation.")
+                  .required(true)
+                  .takes_value(true)
+                  .validator(valid_directory)
+                )
+                .arg(
+                  Arg::with_name("modules")
+                  .long("modules")
+                  .value_name("FILE")
+                  .help("The directory containing modules scripts to share functionality across script files.")
                   .required(false)
                   .takes_value(true)
                   .validator(valid_directory)

@@ -46,6 +46,39 @@ impl CustomMap {
             .collect()
     }
 
+    // Assumes children is in reverse order from what you would normally think, this is done by the calling function wrapper in scripts.rs.
+    pub fn find(&self, mut children: Vec<ImmutableString>) -> Array {
+        let child = children.pop();
+        match child {
+            Some(child) => match self.0.get(&child) {
+                Some(child) => {
+                    if TypeId::of::<Array>() == child.type_id() {
+                        let mut results = Array::new();
+                        for child in child.clone().cast::<Array>() {
+                            if TypeId::of::<CustomMap>() == child.type_id() {
+                                let child = child.clone().cast::<CustomMap>();
+                                for item in child.find(children.clone()) {
+                                    results.push(item);
+                                }
+                            }
+                        }
+                        results
+                    } else if TypeId::of::<CustomMap>() == child.type_id() {
+                        let child = child.clone().cast::<CustomMap>();
+                        child.find(children)
+                    } else if TypeId::of::<ImmutableString>() == child.type_id() {
+                        let child = child.clone().cast::<ImmutableString>();
+                        vec![child.into()]
+                    } else {
+                        Array::new()
+                    }
+                }
+                None => Array::new(),
+            },
+            None => Array::new(),
+        }
+    }
+
     fn debug(self) -> rhai::Map {
         fn cast(d: Dynamic) -> Dynamic {
             if TypeId::of::<Array>() == d.type_id() {

@@ -1,25 +1,22 @@
 // Set the headers, order is important when adding new rows make sure the order matches what is given here.
 fn headers() {
-    return ["name"];
-}
-
-// Collapses name-parts into single string.
-fn name_parts() {
-    let values = [];
-    for part in this["namePart"] {
-        values.push(part["#text"])
-    }
-    values.join(" ");
+    return ["hash", "name"];
 }
 
 // Returns list of rows, values should match order of the headers() function.
 fn rows(pid) {
+    import "utilities" as utils;
+    import "taxonomy" as taxonomy;
     let rows = [];
-    let mods = object(pid).datastream("MODS");
+    let mods = utils::mods(pid);
     if mods != () {
         for name in mods["name"] {
             if name["@type"] == "corporate" {
-                rows += [name.name_parts()]
+                let parts = taxonomy::name_parts(name, " ");
+                let term = taxonomy::term(parts);
+                if term != () {
+                    rows.push(term);
+                }
             }
         }
     }

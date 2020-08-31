@@ -50,9 +50,15 @@ fn main() {
         }
         ("scripts", Some(matches)) => {
             // Source directory should be the output directory of the "fedora" sub command.
-            let (source_directory, output_directory, scripts_directory, pids) =
+            let (source_directory, output_directory, scripts_directory, modules_directory, pids) =
                 get_scripts_subcommand_args(matches);
-            csv::execute_scripts(source_directory, output_directory, scripts_directory, pids);
+            csv::execute_scripts(
+                source_directory,
+                output_directory,
+                scripts_directory,
+                modules_directory,
+                pids,
+            );
         }
         _ => {
             args.print_long_help().unwrap();

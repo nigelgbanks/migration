@@ -5,9 +5,12 @@ use super::xml;
 use indicatif::ProgressBar;
 use log::info;
 use rayon::prelude::*;
+use rhai::module_resolvers::FileModuleResolver;
 use rhai::*;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{BTreeSet, HashMap};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 
@@ -41,7 +44,7 @@ type Header = Vec<String>;
 type Rows = Vec<Row>;
 type ProgressBars = HashMap<Box<Path>, ProgressBar>;
 
-fn create_engine(objects: Arc<RwLock<ObjectMap>>) -> Engine {
+fn create_engine(objects: Arc<RwLock<ObjectMap>>, modules: Option<&Path>) -> Engine {
     let mut engine = Engine::new();
 
     // Custom types.
@@ -80,6 +83,12 @@ fn create_engine(objects: Arc<RwLock<ObjectMap>>) -> Engine {
             }
         },
     );
+
+    engine.register_fn("hash", |value: ImmutableString| -> String {
+        let mut s = DefaultHasher::new();
+        value.hash(&mut s);
+        format!("{:X}", s.finish())
+    });
 
     engine.register_fn(
         "join",
@@ -122,6 +131,17 @@ fn create_engine(objects: Arc<RwLock<ObjectMap>>) -> Engine {
         map.clone().elements()
     });
 
+    engine.register_fn(
+        "find",
+        |map: &mut CustomMap, mut children: Array| -> Array {
+            // Must reverse for the function to work correctly otherwise we'd have to adopt a dequeue or something.
+            children.reverse();
+            let children: Vec<ImmutableString> =
+                children.into_iter().map(|child| child.cast()).collect();
+            map.find(children)
+        },
+    );
+
     // Returns empty array if element is not found to simplify script logic.
     engine.register_indexer_get(
         |map: &mut CustomMap, index: ImmutableString| -> rhai::Dynamic {
@@ -150,20 +170,46 @@ fn create_engine(objects: Arc<RwLock<ObjectMap>>) -> Engine {
         }
     });
 
+    // Allow modules to be registered.
+    if let Some(modules) = modules {
+        let resolver = FileModuleResolver::new_with_path(modules.canonicalize().unwrap());
+        engine.set_module_resolver(Some(resolver));
+    }
+
     engine
 }
 
-// Parse the given script.
+fn is_rhai_file(path: &Path) -> bool {
+    path.extension().unwrap().to_string_lossy() == "rhai"
+}
+
+fn is_script(path: &Path) -> bool {
+    is_rhai_file(&path) && !is_module(&path)
+}
+
+fn is_module(path: &Path) -> bool {
+    is_rhai_file(&path)
+        && path
+            .file_stem()
+            .unwrap()
+            .to_string_lossy()
+            .ends_with(".module")
+}
+
+fn parse_script(path: Box<Path>, engine: &Engine) -> Result<Script, ScriptError> {
+    let ast = engine
+        .compile_file(path.to_path_buf())
+        .map_err(|error| ScriptError(path.clone(), error))?;
+    Ok((path, ast))
+}
+
+// Parse the script files in the script folder.
 fn parse_scripts(path: &Path, engine: &Engine) -> Scripts {
     info!("Parsing Scripts");
     files(&path)
         .into_par_iter()
-        .map(|path| -> Result<Script, ScriptError> {
-            let ast = engine
-                .compile_file(path.to_path_buf())
-                .map_err(|error| ScriptError(path.clone(), error))?;
-            Ok((path, ast))
-        })
+        .filter(|path| is_script(&path))
+        .map(|path| parse_script(path, engine))
         .collect::<Result<Scripts, ScriptError>>()
         .unwrap()
 }
@@ -274,7 +320,7 @@ fn create_csv(header: Header, rows: Rows, dest: Box<Path>) {
     }
 }
 
-pub fn run_scripts(objects: ObjectMap, path: &Path, dest: &Path) {
+pub fn run_scripts(objects: ObjectMap, scripts: &Path, modules: Option<&Path>, dest: &Path) {
     // Track our progress per script, against the total number of objects.
     let count = objects.inner().len() as u64;
 
@@ -283,9 +329,9 @@ pub fn run_scripts(objects: ObjectMap, path: &Path, dest: &Path) {
     // Should be fairly fast as it will only increment a counter per clone,
     // and allows for concurrent reads.
     let arc = Arc::new(RwLock::new(objects));
-    let engine = create_engine(arc.clone());
+    let engine = create_engine(arc.clone(), modules);
 
-    let scripts = parse_scripts(&path, &engine);
+    let scripts = parse_scripts(&scripts, &engine);
 
     let (multi, bars) = logger::progress_bars(count, scripts.keys().cloned());
 
