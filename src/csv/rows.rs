@@ -28,7 +28,8 @@ lazy_static! {
         m.insert("audio/mpeg", "audio");
         m.insert("audio/wav", "audio");
         m.insert("image/gif", "image");
-        m.insert("image/jp2", "image");
+        m.insert("image/jp2", "file");
+        m.insert("image/tiff", "file");
         m.insert("image/jpeg", "image");
         m.insert("image/jpg", "image");
         m.insert("image/png", "image");
