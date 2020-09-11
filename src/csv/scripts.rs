@@ -2,9 +2,11 @@ use super::map::CustomMap;
 use super::object::{Object, ObjectMap};
 use super::utils::*;
 use super::xml;
+use chrono::{DateTime, NaiveDate};
 use indicatif::ProgressBar;
 use log::info;
 use rayon::prelude::*;
+use regex::Regex;
 use rhai::module_resolvers::{FileModuleResolver, ModuleResolversCollection};
 use rhai::*;
 use std::collections::hash_map::DefaultHasher;
@@ -102,6 +104,21 @@ fn create_engine(objects: Arc<RwLock<ObjectMap>>, modules: Vec<&Path>) -> Engine
                 .into()
         },
     );
+
+    engine.register_fn("edtf", |value: ImmutableString| -> String {
+        if let Ok(date) = DateTime::parse_from_rfc2822(&value) {
+            return date.to_rfc3339();
+        } else if let Ok(date) = DateTime::parse_from_rfc3339(&value) {
+            return date.to_rfc3339();
+        }
+        let re = Regex::new(r"\d{4}-\d{2}-\d{2}").unwrap();
+        if let Some(found) = re.find(&value) {
+            if let Ok(date) = NaiveDate::parse_from_str(&found.as_str(), "%Y-%m-%d") {
+                return date.format("%Y-%m-%d").to_string();
+            }
+        }
+        "".to_string()
+    });
 
     // Object properties.
     engine.register_get("pid", |object: &mut Object| object.pid.0.clone());
@@ -219,10 +236,10 @@ fn parse_scripts(paths: Vec<&Path>, engine: &Engine) -> Scripts {
 }
 
 // Call `headers()` function in the given script.
-fn call_headers(engine: &Engine, script: &Script) -> Vec<String> {
+fn call_headers(engine: &Engine, script: &Script) -> (Header, usize) {
     let (path, ast) = script;
     let mut scope = Scope::new();
-    let result: Array = engine
+    let mut result: Map = engine
         .call_fn(&mut scope, &ast, "headers", ())
         .unwrap_or_else(|error| {
             panic!(
@@ -232,10 +249,18 @@ fn call_headers(engine: &Engine, script: &Script) -> Vec<String> {
             )
         });
     // Consume results and convert to a list of strings.
-    result
-        .into_iter()
-        .map(|d| d.take_string().unwrap())
-        .collect()
+    let columns: Header = {
+        let columns: Array = result.remove("columns").unwrap().cast();
+        columns
+            .into_iter()
+            .map(|d| d.take_string().unwrap())
+            .collect()
+    };
+    let sort_by_column: usize = {
+        let sort_by: String = result.remove("sort_by").unwrap().cast();
+        columns.iter().position(|r| r.eq(&sort_by)).unwrap()
+    };
+    (columns, sort_by_column)
 }
 
 fn call_rows(
@@ -270,6 +295,7 @@ fn aggregate_rows(
     script: &Script,
     objects: &ObjectMap,
     progress_bars: &ProgressBars,
+    sort_by_column: usize,
 ) -> Rows {
     // Execute scripts and aggregate the results.
     let rows: Rows = objects
@@ -284,7 +310,7 @@ fn aggregate_rows(
         .into_iter()
         .collect();
     // Sort alphanumerically on the first column only.
-    rows.sort_by(|a, b| alphanumeric_sort::compare_str(&a[0], &b[0]));
+    rows.sort_by(|a, b| alphanumeric_sort::compare_str(&a[sort_by_column], &b[sort_by_column]));
 
     rows
 }
@@ -295,9 +321,10 @@ fn execute_script(
     objects: &ObjectMap,
     progress_bars: &ProgressBars,
 ) -> (Header, Rows) {
+    let header = call_headers(&engine, &script);
     (
-        call_headers(&engine, &script),
-        aggregate_rows(&engine, &script, &objects, &progress_bars),
+        header.0,
+        aggregate_rows(&engine, &script, &objects, &progress_bars, header.1),
     )
 }
 
