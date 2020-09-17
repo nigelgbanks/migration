@@ -4,6 +4,7 @@ extern crate serde;
 use super::object::*;
 use chrono::{DateTime, FixedOffset};
 use log::info;
+use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::convert::TryFrom;

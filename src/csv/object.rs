@@ -707,48 +707,51 @@ impl ObjectMap {
         &self.0
     }
 
-    pub fn objects(&self) -> Box<dyn Iterator<Item = &Object> + '_> {
-        Box::new(self.0.values())
+    pub fn objects(&self) -> impl ParallelIterator<Item = &Object> {
+        self.0.par_iter().map(|(_, v)| v)
+    }
+
+    fn datastreams(&self) -> impl ParallelIterator<Item = (&Object, &Datastream)> {
+        self.objects().flat_map(|object| {
+            object
+                .datastreams
+                .par_iter()
+                .map(move |datastream| (object, datastream))
+        })
     }
 
     pub fn versions(
         &self,
-    ) -> Box<dyn Iterator<Item = (&Object, &Datastream, &DatastreamVersion)> + '_> {
-        Box::new(self.0.values().flat_map(|object| {
-            object.datastreams.iter().flat_map(move |datastream| {
-                datastream
-                    .versions
-                    .iter()
-                    .map(move |version| (object, datastream, version))
-            })
-        }))
+    ) -> impl ParallelIterator<Item = (&Object, &Datastream, &DatastreamVersion)> {
+        self.datastreams().flat_map(|(object, datastream)| {
+            datastream
+                .versions
+                .par_iter()
+                .map(move |version| (object, datastream, version))
+        })
     }
 
     pub fn latest_versions(
         &self,
-    ) -> Box<dyn Iterator<Item = (&Object, &Datastream, &DatastreamVersion)> + '_> {
-        Box::new(self.0.values().flat_map(|object| {
-            object.datastreams.iter().map(move |datastream| {
-                let version = datastream.versions.last().unwrap();
-                (object, datastream, version)
-            })
-        }))
+    ) -> impl ParallelIterator<Item = (&Object, &Datastream, &DatastreamVersion)> {
+        self.datastreams().map(|(object, datastream)| {
+            let version = datastream.versions.last().unwrap();
+            (object, datastream, version)
+        })
     }
 
     pub fn previous_versions(
         &self,
-    ) -> Box<dyn Iterator<Item = (&Object, &Datastream, &DatastreamVersion)> + '_> {
-        Box::new(self.0.values().flat_map(|object| {
-            object.datastreams.iter().flat_map(move |datastream| {
-                datastream
-                    .versions
-                    .iter()
-                    .rev()
-                    .skip(1)
-                    .rev()
-                    .map(move |version| (object, datastream, version))
-            })
-        }))
+    ) -> impl ParallelIterator<Item = (&Object, &Datastream, &DatastreamVersion)> {
+        self.datastreams().flat_map(|(object, datastream)| {
+            datastream
+                .versions
+                .par_iter()
+                .rev()
+                .skip(1)
+                .rev()
+                .map(move |version| (object, datastream, version))
+        })
     }
 
     // Enumerate object files, if limit_to_pids is non-empty restrict the files to just those whose PID matches entries in the given list.
