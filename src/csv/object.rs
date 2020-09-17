@@ -136,12 +136,10 @@ impl DatastreamVersion {
     pub fn path(&self) -> PathBuf {
         let lock = super::DATASTREAMS_DIRECTORY.read().unwrap();
         let root = lock.as_ref().unwrap();
-        let path = root
-            .join(&self.pid)
+        root.join(&self.pid)
             .join(&self.dsid)
             .join(&self.id)
-            .join(self.file_name());
-        path
+            .join(self.file_name())
     }
 }
 
