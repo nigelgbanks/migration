@@ -246,11 +246,11 @@ pub struct RelsExt {
     pub deferDerivatives: Option<bool>,
     pub generateHOCR: Option<bool>,
     pub generateOCR: Option<bool>,
-    pub isPageNumber: Option<usize>,
+    pub isPageNumber: Option<isize>,
     pub isPageOf: Option<String>,
-    pub isSection: Option<usize>,
-    pub isSequenceNumber: Option<usize>,
-    pub isSequenceNumberOf: Vec<(String, usize)>,
+    pub isSection: Option<isize>,
+    pub isSequenceNumber: Option<isize>,
+    pub isSequenceNumberOf: Vec<(String, isize)>,
 }
 
 impl RelsExt {
@@ -493,7 +493,7 @@ impl RelsExt {
     fn is_sequence_number_of<B>(
         mut reader: &mut Reader<B>,
         element: &BytesStart,
-    ) -> Option<(String, usize)>
+    ) -> Option<(String, isize)>
     where
         B: BufRead,
     {
@@ -521,6 +521,7 @@ pub struct Object {
     pub created_date: DateTime<FixedOffset>,
     pub modified_date: DateTime<FixedOffset>,
     pub datastreams: Vec<Datastream>,
+    pub weight: Option<isize>,
 }
 
 impl Object {
@@ -536,6 +537,7 @@ impl Object {
             label: foxml.properties.label(),
             model: "".to_string(),
             parents: vec![],
+            weight: None,
             created_date: foxml.properties.created_date(),
             modified_date: foxml.properties.modified_date(),
             state: foxml.properties.state().into(),
@@ -557,6 +559,7 @@ impl Object {
         let rels_ext = object.rels_ext();
         object.model = Object::model(&rels_ext);
         object.parents = Object::parents(&rels_ext);
+        object.weight = Object::weight(&rels_ext);
         object
     }
 
@@ -583,6 +586,7 @@ impl Object {
     }
 
     fn parents(rels_ext: &RelsExt) -> Vec<String> {
+        // isSequenceNumberOf relationship is covered by isConstituentOf.
         let parents = vec![
             &rels_ext.isPartOf,
             &rels_ext.isConstituentOf,
@@ -607,6 +611,19 @@ impl Object {
             .collect::<Vec<String>>();
         parents.sort_by(|a, b| alphanumeric_sort::compare_str(&a, &b));
         parents
+    }
+
+    // Drupal 8 supports multiple parents but only a single weight!
+    fn weight(rels_ext: &RelsExt) -> Option<isize> {
+        if rels_ext.isPageNumber.is_some() {
+            rels_ext.isPageNumber
+        } else if rels_ext.isSequenceNumber.is_some() {
+            rels_ext.isSequenceNumber
+        } else if let Some((_, weight)) = rels_ext.isSequenceNumberOf.first() {
+            Some(*weight)
+        } else {
+            None
+        }
     }
 
     // Gets the latest version of the request datastream.
