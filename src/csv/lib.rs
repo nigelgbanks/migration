@@ -21,6 +21,7 @@ use log::info;
 use object::ObjectMap;
 use rows::{FileRow, MediaRow, NodeRow};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::RwLock;
 
 lazy_static! {
@@ -57,27 +58,42 @@ pub fn valid_source_directory(path: &Path) -> Result<(), String> {
 }
 
 pub fn generate_csvs(input: &Path, dest: &Path, pids: Vec<&str>) {
-    let objects = ObjectMap::from_path(&input, pids);
     info!("Generating csv files");
-    //
-    //    let (multi, bars) = logger::progress_bars(count, scripts.keys().cloned());
-    //
-    //    // Create a thread to run the scripts in the background so we can update the
-    //    // progress bars in this thread.
-    //    let dest = dest.to_path_buf();
-    //    let thread = std::thread::spawn(move || {
-    //
-    //    });
-    //
-    //    // Wait for progress to finish and update the progress bar display.
-    //    multi.join_and_clear().unwrap();
-    //    // Process can still continue after the progress bars have finished, make sure the thread is joined.
-    //    thread.join().unwrap();
-    //
-    FileRow::csv(&objects, dest);
-    MediaRow::csv(&objects, dest);
-    MediaRow::revisions_csv(&objects, dest);
-    NodeRow::csv(&objects, dest);
+
+    let objects = Arc::new(ObjectMap::from_path(&input, pids));
+    let dest = Arc::new(dest.to_path_buf());
+
+    let multi = Arc::new(logger::multi_progress());
+    let count = 10000; // Just set the progress bars to arbitrary length until actual length can be calculated.
+
+    let _objects = objects.clone();
+    let _dest = dest.clone();
+    let progress_bar = multi.add(logger::progress_bar(count));
+    rayon::spawn(move || {
+        FileRow::csv(&_objects, &_dest, progress_bar);
+    });
+
+    let _objects = objects.clone();
+    let _dest = dest.clone();
+    let progress_bar = multi.add(logger::progress_bar(count));
+    rayon::spawn(move || {
+        MediaRow::csv(&_objects, &_dest, progress_bar);
+    });
+
+    let _objects = objects.clone();
+    let _dest = dest.clone();
+    let progress_bar = multi.add(logger::progress_bar(count));
+    rayon::spawn(move || {
+        MediaRow::revisions_csv(&_objects, &_dest, progress_bar);
+    });
+
+    let progress_bar = multi.add(logger::progress_bar(count));
+    rayon::spawn(move || {
+        NodeRow::csv(&objects, &dest, progress_bar);
+    });
+
+    // Wait for progress to finish and update the progress bar display.
+    multi.join_and_clear().unwrap();
 }
 
 pub fn execute_scripts(

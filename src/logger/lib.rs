@@ -47,6 +47,10 @@ impl log::Log for Logger {
     fn flush(&self) {}
 }
 
+pub fn multi_progress() -> MultiProgress {
+    MultiProgress::new()
+}
+
 pub fn progress_bar(total: u64) -> ProgressBar {
     let progress_bar = ProgressBar::new(total);
     let style = ProgressStyle::default_bar()

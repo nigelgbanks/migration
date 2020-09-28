@@ -3,9 +3,10 @@ extern crate serde;
 
 use super::object::*;
 use chrono::{DateTime, FixedOffset};
-use log::info;
+use indicatif::ProgressBar;
 use rayon::prelude::*;
 use serde::Serialize;
+use sha1::{Digest, Sha1};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
@@ -153,23 +154,31 @@ impl<'a> MediaRow<'a> {
         }
     }
 
-    pub fn csv(objects: &ObjectMap, dest: &Path) {
-        info!("Generating media.csv");
+    pub fn csv(objects: &ObjectMap, dest: &Path, progress_bar: ProgressBar) {
+        progress_bar.set_length(objects.latest_versions().count() as u64);
         let rows = objects
             .latest_versions()
-            .map(MediaRow::new)
+            .map(|row| {
+                progress_bar.inc(1);
+                MediaRow::new(row)
+            })
             .collect::<Vec<_>>();
         create_csv(&rows, &dest.join("media.csv")).expect("Failed to create media.csv");
+        progress_bar.finish_with_message("Created media.csv");
     }
 
-    pub fn revisions_csv(objects: &ObjectMap, dest: &Path) {
-        info!("Generating media_revisions.csv");
+    pub fn revisions_csv(objects: &ObjectMap, dest: &Path, progress_bar: ProgressBar) {
+        progress_bar.set_length(objects.previous_versions().count() as u64);
         let rows = objects
             .previous_versions()
-            .map(MediaRow::new)
+            .map(|row| {
+                progress_bar.inc(1);
+                MediaRow::new(row)
+            })
             .collect::<Vec<_>>();
         create_csv(&rows, &dest.join("media_revisions.csv"))
             .expect("Failed to create media_revisions.csv");
+        progress_bar.finish_with_message("Created media_revisions.csv");
     }
 }
 
@@ -183,6 +192,7 @@ pub struct FileRow<'a> {
     name: String,
     path: Box<Path>,
     user: &'a str,
+    sha1: String,
 }
 
 impl<'a> FileRow<'a> {
@@ -212,13 +222,29 @@ impl<'a> FileRow<'a> {
                 .to_string(),
             user: &object.owner,
             path,
+            sha1: Self::sha1(&version.path()),
         }
     }
 
-    pub fn csv(objects: &ObjectMap, dest: &Path) {
-        info!("Generating files.csv");
-        let rows = objects.versions().map(FileRow::new).collect::<Vec<_>>();
+    fn sha1(path: &Path) -> String {
+        let mut file = std::fs::File::open(&path).unwrap();
+        let mut hasher = Sha1::new();
+        std::io::copy(&mut file, &mut hasher).unwrap();
+        let hash = hasher.finalize();
+        format!("{:x}", hash)
+    }
+
+    pub fn csv(objects: &ObjectMap, dest: &Path, progress_bar: ProgressBar) {
+        progress_bar.set_length(objects.versions().count() as u64);
+        let rows = objects
+            .versions()
+            .map(|row| {
+                progress_bar.inc(1);
+                FileRow::new(row)
+            })
+            .collect::<Vec<_>>();
         create_csv(&rows, &dest.join("files.csv")).expect("Failed to create files.csv");
+        progress_bar.finish_with_message("Created files.csv");
     }
 }
 
@@ -284,14 +310,21 @@ impl<'a> NodeRow<'a> {
         }
     }
 
-    pub fn csv(objects: &ObjectMap, dest: &Path) {
-        info!("Generating nodes.csv");
-        let rows: Vec<_> = objects.objects().map(NodeRow::new).collect();
+    pub fn csv(objects: &ObjectMap, dest: &Path, progress_bar: ProgressBar) {
+        progress_bar.set_length(objects.objects().count() as u64);
+        let rows: Vec<_> = objects
+            .objects()
+            .map(|row| {
+                progress_bar.inc(1);
+                NodeRow::new(row)
+            })
+            .collect();
         create_csv(&rows, &dest.join("nodes.csv")).expect("Failed to create media_revisions.csv");
+        progress_bar.finish_with_message("Created nodes.csv");
     }
 }
 
-fn create_csv<S>(rows: &[S], dest: &Path) -> Result<(), std::io::Error>
+pub fn create_csv<S>(rows: &[S], dest: &Path) -> Result<(), std::io::Error>
 where
     S: Serialize,
 {

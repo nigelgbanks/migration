@@ -693,6 +693,16 @@ impl PartialEq for Object {
 pub type ObjectMapInner = BTreeMap<Pid, Object>;
 pub struct ObjectMap(ObjectMapInner);
 
+pub trait VersionIterator<'a>:
+    ParallelIterator<Item = (&'a Object, &'a Datastream, &'a DatastreamVersion)>
+{
+}
+
+impl<'a, T: ParallelIterator<Item = (&'a Object, &'a Datastream, &'a DatastreamVersion)>>
+    VersionIterator<'a> for T
+{
+}
+
 impl ObjectMap {
     pub fn from_path(input: &Path, limit_to_pids: Vec<&str>) -> Self {
         let object_paths = Self::object_files(&input, limit_to_pids);
@@ -735,9 +745,7 @@ impl ObjectMap {
         })
     }
 
-    pub fn versions(
-        &self,
-    ) -> impl ParallelIterator<Item = (&Object, &Datastream, &DatastreamVersion)> {
+    pub fn versions(&self) -> impl VersionIterator {
         self.datastreams().flat_map(|(object, datastream)| {
             datastream
                 .versions
@@ -746,18 +754,14 @@ impl ObjectMap {
         })
     }
 
-    pub fn latest_versions(
-        &self,
-    ) -> impl ParallelIterator<Item = (&Object, &Datastream, &DatastreamVersion)> {
+    pub fn latest_versions(&self) -> impl VersionIterator {
         self.datastreams().map(|(object, datastream)| {
             let version = datastream.versions.last().unwrap();
             (object, datastream, version)
         })
     }
 
-    pub fn previous_versions(
-        &self,
-    ) -> impl ParallelIterator<Item = (&Object, &Datastream, &DatastreamVersion)> {
+    pub fn previous_versions(&self) -> impl VersionIterator {
         self.datastreams().flat_map(|(object, datastream)| {
             datastream
                 .versions
