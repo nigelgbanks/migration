@@ -17,6 +17,26 @@ use std::path::Path;
 
 static OBJECT_STORE: &str = "data/objectStore";
 static DATASTREAM_STORE: &str = "data/datastreamStore";
+static POLICY_STORE: &str = "data/fedora-xacml-policies/repository-policies";
+
+fn migrate_policy_files(src: &Path, dest: &Path, copy: bool, checksum: bool) {
+    info!("Searching Fedora for policy files");
+
+    let policy_files = identifiers::files(&src);
+
+    // Map source files to destination files.
+    let identified_files = policy_files
+        .into_par_iter()
+        .map(|file| {
+            let relative_path = file.strip_prefix(&src).unwrap();
+            let dest = dest.join(&relative_path);
+            (file, dest.into_boxed_path())
+        })
+        .collect::<identifiers::PathMap>();
+
+    let results = migrate_files(&identified_files, copy, checksum);
+    info!("Finished migrating policy files: {}", results);
+}
 
 fn migrate_object_files(
     src: &Path,
@@ -114,12 +134,21 @@ pub fn migrate_data_from_fedora(
         &fedora_directory.to_string_lossy(),
         &output_directory.to_string_lossy()
     );
+
+    migrate_policy_files(
+        &fedora_directory.join(POLICY_STORE),
+        &output_directory.join("policies"),
+        copy,
+        checksum,
+    );
+
     let objects = migrate_object_files(
         &fedora_directory.join(OBJECT_STORE),
         &output_directory.join("objects"),
         copy,
         checksum,
     );
+
     let datastreams_directory = output_directory.join("datastreams");
     migrate_managed_datastreams(
         &objects,
