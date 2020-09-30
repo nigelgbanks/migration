@@ -114,7 +114,7 @@ pub struct MediaRow<'a> {
     dsid: &'a str,
     version: &'a str,
     bundle: String,
-    created_date: String,
+    created_date: i64,
     file_size: u64,
     label: &'a str,
     mime_type: &'a str,
@@ -187,12 +187,13 @@ pub struct FileRow<'a> {
     pid: &'a str,
     dsid: &'a str,
     version: &'a str,
-    created_date: String,
+    created_date: i64,
     mime_type: &'a str,
     name: String,
     path: Box<Path>,
     user: &'a str,
     sha1: String,
+    size: u64,
 }
 
 impl<'a> FileRow<'a> {
@@ -223,6 +224,7 @@ impl<'a> FileRow<'a> {
             user: &object.owner,
             path,
             sha1: Self::sha1(&version.path()),
+            size: version.path().metadata().unwrap().len(),
         }
     }
 
@@ -279,11 +281,11 @@ impl From<Model> for DisplayHint {
 #[derive(Serialize)]
 pub struct NodeRow<'a> {
     pid: &'a str,
-    created_date: String,
+    created_date: i64,
     label: &'a str,
     weight: String,
     model: &'a str,
-    modified_date: String,
+    modified_date: i64,
     state: &'a str,
     user: &'a str,
     display_hint: &'a str,
@@ -336,6 +338,6 @@ where
     Ok(())
 }
 
-fn format_date(date_time: &DateTime<FixedOffset>) -> String {
-    date_time.format("%Y-%m-%dT%H:%M:%S%:z").to_string()
+fn format_date(date_time: &DateTime<FixedOffset>) -> i64 {
+    date_time.timestamp()
 }

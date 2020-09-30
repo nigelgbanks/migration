@@ -60,6 +60,11 @@ fn main() {
                 pids,
             );
         }
+        ("sql", Some(matches)) => {
+            // Source directory should be the output directory of the "fedora" sub command.
+            let (source_directory, output_directory) = get_sql_subcommand_args(matches);
+            sql::generate_sql(source_directory, output_directory);
+        }
         _ => {
             args.print_long_help().unwrap();
         }

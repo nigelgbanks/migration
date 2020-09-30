@@ -16,3 +16,4 @@ csv = { path = "./csv" }
 log = "0.4.11"
 logger = { path = "./logger" }
 migrate = { path = "./migrate" }
+sql = { path = "./sql" }

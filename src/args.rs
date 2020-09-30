@@ -22,9 +22,15 @@ fn valid_fedora_directory(s: String) -> ArgResult {
     Ok(())
 }
 
-fn valid_source_directory(s: String) -> ArgResult {
+fn valid_csv_source_directory(s: String) -> ArgResult {
     let path = Path::new(OsStr::new(&s));
     csv::valid_source_directory(&path)?;
+    Ok(())
+}
+
+fn valid_sql_source_directory(s: String) -> ArgResult {
+    let path = Path::new(OsStr::new(&s));
+    sql::valid_source_directory(&path)?;
     Ok(())
 }
 
@@ -108,6 +114,20 @@ pub fn get_scripts_subcommand_args<'a>(
     )
 }
 
+pub fn get_sql_subcommand_args<'a>(args: &'a ArgMatches) -> (&'a Path, &'a Path) {
+    let input_arg = args
+        .value_of("input")
+        .expect("Failed to get argument --input");
+    let input_directory = Path::new(OsStr::new(input_arg));
+
+    let output_arg = args
+        .value_of("output")
+        .expect("Failed to get argument --output");
+    let output_directory = Path::new(OsStr::new(output_arg));
+
+    (input_directory, output_directory)
+}
+
 pub fn args<'a, 'b>() -> App<'a, 'b> {
     let args: Vec<String> = env::args().collect();
     let program_name = Path::new(OsStr::new(&args[0]))
@@ -160,7 +180,7 @@ pub fn args<'a, 'b>() -> App<'a, 'b> {
                   .help("Input directory to process, this should be the same as the output directory of the `migrate` sub-command.")
                   .required(true)
                   .takes_value(true)
-                  .validator(valid_source_directory)
+                  .validator(valid_csv_source_directory)
                 )
                 .arg(
                   Arg::with_name("output")
@@ -192,7 +212,7 @@ pub fn args<'a, 'b>() -> App<'a, 'b> {
                   .help("Input directory to process, this should be the same as the output directory of the `migrate` sub-command.")
                   .required(true)
                   .takes_value(true)
-                  .validator(valid_source_directory)
+                  .validator(valid_csv_source_directory)
                 )
                 .arg(
                   Arg::with_name("output")
@@ -235,6 +255,27 @@ pub fn args<'a, 'b>() -> App<'a, 'b> {
                   .require_delimiter(true)
                   .required(false)
                   .takes_value(true)
+                )
+    )
+    .subcommand(SubCommand::with_name("sql")
+                .about("Generates an SQL import script for testing purposes.")
+                .arg(
+                  Arg::with_name("input")
+                  .long("input")
+                  .value_name("FILE")
+                  .help("Input directory to process, this should be the same as the output directory of the `csv` sub-command.")
+                  .required(true)
+                  .takes_value(true)
+                  .validator(valid_sql_source_directory)
+                )
+                .arg(
+                  Arg::with_name("output")
+                  .long("output")
+                  .value_name("FILE")
+                  .help("The directory to write to")
+                  .required(true)
+                  .takes_value(true)
+                  .validator(valid_directory)
                 )
     )
 }
