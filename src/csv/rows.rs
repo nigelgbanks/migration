@@ -125,13 +125,17 @@ pub struct MediaRow<'a> {
 impl<'a> MediaRow<'a> {
     fn new(tuple: (&'a Object, &'a Datastream, &'a DatastreamVersion)) -> Self {
         let (object, datastream, version) = tuple;
+        let version_path = version.path();
+        let version_exists = version_path.exists();
         MediaRow {
             pid: &object.pid.0,
             dsid: &datastream.id,
             version: &version.id,
             bundle: Self::bundle(&datastream, &version),
             created_date: format_date(&version.created_date),
-            file_size: version.path().metadata().unwrap().len(),
+            // When running locally we may not actually have the files,
+            // in which case just do not calculate the file size.
+            file_size: if version_exists { version_path.metadata().unwrap().len() } else { 0 },
             label: &version.label,
             mime_type: &version.mime_type,
             name: version
@@ -209,6 +213,8 @@ impl<'a> FileRow<'a> {
             .rev()
             .collect::<PathBuf>()
             .into_boxed_path();
+        let version_path = version.path();
+        let version_exists = version_path.exists();
         FileRow {
             pid: &object.pid.0,
             dsid: &datastream.id,
@@ -223,8 +229,10 @@ impl<'a> FileRow<'a> {
                 .to_string(),
             user: &object.owner,
             path,
-            sha1: Self::sha1(&version.path()),
-            size: version.path().metadata().unwrap().len(),
+            // When running locally we may not actually have the files,
+            // in which case just do not generate a sha-1 or calculate the file size.
+            sha1: if version_exists { Self::sha1(&version_path) } else { "".to_string() },
+            size: if version_exists { version_path.metadata().unwrap().len() } else { 0 }
         }
     }
 
