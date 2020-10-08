@@ -338,7 +338,7 @@ pub fn create_csv<S>(rows: &[S], dest: &Path) -> Result<(), std::io::Error>
 where
     S: Serialize,
 {
-    let builder = csv::WriterBuilder::new();
+    let builder = csv_other::WriterBuilder::new();
     let mut writer = builder.from_path(&dest)?;
     for row in rows {
         writer.serialize(row)?;

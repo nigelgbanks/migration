@@ -339,7 +339,7 @@ fn csv_destination(script: &Script, dest: &Path) -> Box<Path> {
 }
 
 fn create_csv(header: Header, rows: Rows, dest: Box<Path>) {
-    let mut wtr = csv::WriterBuilder::new()
+    let mut wtr = csv_other::WriterBuilder::new()
         .from_path(&dest)
         .expect("Failed to create CSV");
 
