@@ -500,7 +500,9 @@ impl RelsExt {
         let name = std::str::from_utf8(element.local_name())
             .unwrap()
             .to_string();
-        if let Some(pid) = name.strip_prefix("isSequenceNumberOf") {
+        let predicate = "isSequenceNumberOf";
+        if name.starts_with(predicate) {
+            let pid =  &name[predicate.len()..];
             let pid = pid.replacen("_", ":", 1);
             let text = Self::get_text(&mut reader);
             Some((pid, text.parse().unwrap()))
