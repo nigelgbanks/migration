@@ -502,7 +502,7 @@ impl RelsExt {
             .to_string();
         let predicate = "isSequenceNumberOf";
         if name.starts_with(predicate) {
-            let pid =  &name[predicate.len()..];
+            let pid = &name[predicate.len()..];
             let pid = pid.replacen("_", ":", 1);
             let text = Self::get_text(&mut reader);
             Some((pid, text.parse().unwrap()))

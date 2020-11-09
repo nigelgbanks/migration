@@ -135,7 +135,11 @@ impl<'a> MediaRow<'a> {
             created_date: format_date(&version.created_date),
             // When running locally we may not actually have the files,
             // in which case just do not calculate the file size.
-            file_size: if version_exists { version_path.metadata().unwrap().len() } else { 0 },
+            file_size: if version_exists {
+                version_path.metadata().unwrap().len()
+            } else {
+                0
+            },
             label: &version.label,
             mime_type: &version.mime_type,
             name: version
@@ -194,7 +198,7 @@ pub struct FileRow<'a> {
     created_date: i64,
     mime_type: &'a str,
     name: String,
-    path: Box<Path>,
+    path: String,
     user: &'a str,
     sha1: String,
     size: u64,
@@ -203,8 +207,9 @@ pub struct FileRow<'a> {
 impl<'a> FileRow<'a> {
     fn new(tuple: (&'a Object, &'a Datastream, &'a DatastreamVersion)) -> Self {
         let (object, datastream, version) = tuple;
-        let path = version
-            .path()
+        let version_path = version.path();
+        let version_exists = version_path.exists();
+        let relative_path = version_path
             .components()
             .rev()
             .take(5)
@@ -213,8 +218,9 @@ impl<'a> FileRow<'a> {
             .rev()
             .collect::<PathBuf>()
             .into_boxed_path();
-        let version_path = version.path();
-        let version_exists = version_path.exists();
+        // Assume all files are in the public://fedora folder for now.
+        let mut path = "public://fedora/".to_string();
+        path.push_str(&relative_path.to_str().unwrap());
         FileRow {
             pid: &object.pid.0,
             dsid: &datastream.id,
@@ -231,8 +237,16 @@ impl<'a> FileRow<'a> {
             path,
             // When running locally we may not actually have the files,
             // in which case just do not generate a sha-1 or calculate the file size.
-            sha1: if version_exists { Self::sha1(&version_path) } else { "".to_string() },
-            size: if version_exists { version_path.metadata().unwrap().len() } else { 0 }
+            sha1: if version_exists {
+                Self::sha1(&version_path)
+            } else {
+                "".to_string()
+            },
+            size: if version_exists {
+                version_path.metadata().unwrap().len()
+            } else {
+                0
+            },
         }
     }
 

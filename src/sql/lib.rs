@@ -41,115 +41,6 @@ use std::time::SystemTime;
 use tempfile::tempfile;
 use uuid::Uuid;
 
-// Migration mapping tables do not exist until a migration is run so we must
-// create them here since this is intended to run before any content is created.
-static CREATE_TABLES_PREAMBLE: &str = r#"
---
--- Table structure for table `migrate_map_fedora_users`
---
-
-DROP TABLE IF EXISTS `migrate_map_fedora_users`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `migrate_map_fedora_users` (
-  `source_ids_hash` varchar(64) NOT NULL COMMENT 'Hash of source ids. Used as primary key',
-  `sourceid1` varchar(255) NOT NULL,
-  `destid1` int(10) unsigned DEFAULT NULL,
-  `source_row_status` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Indicates current status of the source row',
-  `rollback_action` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Flag indicating what to do for this item on rollback',
-  `last_imported` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'UNIX timestamp of the last time this row was imported',
-  `hash` varchar(64) DEFAULT NULL COMMENT 'Hash of source row data, for detecting changes',
-  PRIMARY KEY (`source_ids_hash`),
-  KEY `source` (`sourceid1`(191))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Mappings from source identifier value(s) to destination…';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `migrate_map_fedora_files`
---
-
-DROP TABLE IF EXISTS `migrate_map_fedora_files`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `migrate_map_fedora_files` (
-  `source_ids_hash` varchar(64) NOT NULL COMMENT 'Hash of source ids. Used as primary key',
-  `sourceid1` varchar(255) NOT NULL,
-  `sourceid2` varchar(255) NOT NULL,
-  `sourceid3` varchar(255) NOT NULL,
-  `destid1` int(10) unsigned DEFAULT NULL,
-  `source_row_status` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Indicates current status of the source row',
-  `rollback_action` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Flag indicating what to do for this item on rollback',
-  `last_imported` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'UNIX timestamp of the last time this row was imported',
-  `hash` varchar(64) DEFAULT NULL COMMENT 'Hash of source row data, for detecting changes',
-  PRIMARY KEY (`source_ids_hash`),
-  KEY `source` (`sourceid1`(191),`sourceid2`(191),`sourceid3`(191))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Mappings from source identifier value(s) to destination…';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `migrate_map_fedora_media`
---
-
-DROP TABLE IF EXISTS `migrate_map_fedora_media`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `migrate_map_fedora_media` (
-  `source_ids_hash` varchar(64) NOT NULL COMMENT 'Hash of source ids. Used as primary key',
-  `sourceid1` varchar(255) NOT NULL,
-  `sourceid2` varchar(255) NOT NULL,
-  `destid1` int(10) unsigned DEFAULT NULL,
-  `source_row_status` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Indicates current status of the source row',
-  `rollback_action` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Flag indicating what to do for this item on rollback',
-  `last_imported` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'UNIX timestamp of the last time this row was imported',
-  `hash` varchar(64) DEFAULT NULL COMMENT 'Hash of source row data, for detecting changes',
-  PRIMARY KEY (`source_ids_hash`),
-  KEY `source` (`sourceid1`(191),`sourceid2`(191))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Mappings from source identifier value(s) to destination…';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `migrate_map_fedora_media_revisions`
---
-
-DROP TABLE IF EXISTS `migrate_map_fedora_media_revisions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `migrate_map_fedora_media_revisions` (
-  `source_ids_hash` varchar(64) NOT NULL COMMENT 'Hash of source ids. Used as primary key',
-  `sourceid1` varchar(255) NOT NULL,
-  `sourceid2` varchar(255) NOT NULL,
-  `sourceid3` varchar(255) NOT NULL,
-  `destid1` int(10) unsigned DEFAULT NULL,
-  `source_row_status` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Indicates current status of the source row',
-  `rollback_action` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Flag indicating what to do for this item on rollback',
-  `last_imported` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'UNIX timestamp of the last time this row was imported',
-  `hash` varchar(64) DEFAULT NULL COMMENT 'Hash of source row data, for detecting changes',
-  PRIMARY KEY (`source_ids_hash`),
-  KEY `source` (`sourceid1`(191),`sourceid2`(191),`sourceid3`(191))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Mappings from source identifier value(s) to destination…';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `migrate_map_fedora_nodes`
---
-
-DROP TABLE IF EXISTS `migrate_map_fedora_nodes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `migrate_map_fedora_nodes` (
-  `source_ids_hash` varchar(64) NOT NULL COMMENT 'Hash of source ids. Used as primary key',
-  `sourceid1` varchar(255) NOT NULL,
-  `destid1` int(10) unsigned DEFAULT NULL,
-  `source_row_status` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Indicates current status of the source row',
-  `rollback_action` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Flag indicating what to do for this item on rollback',
-  `last_imported` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'UNIX timestamp of the last time this row was imported',
-  `hash` varchar(64) DEFAULT NULL COMMENT 'Hash of source row data, for detecting changes',
-  PRIMARY KEY (`source_ids_hash`),
-  KEY `source` (`sourceid1`(191))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Mappings from source identifier value(s) to destination…';
-/*!40101 SET character_set_client = @saved_cs_client */;
-"#;
-
 // Like PHP serialize(), but limited to a list of strings as input.
 // i.e. serialize(array("pid")); => a:2:{i:0;s:3:"pid";}
 // Used to generate source ids for migrate map tables.
@@ -227,14 +118,15 @@ impl Table {
 LOCK TABLES `{table}` WRITE;
 /*!40000 ALTER TABLE `{table}` DISABLE KEYS */;
 set autocommit=0;
-INSERT INTO `{table}` ({columns}) VALUES ({values});
+INSERT INTO `{table}` ({columns}) VALUES 
+  {values};
 /*!40000 ALTER TABLE `{table}` ENABLE KEYS */;
 UNLOCK TABLES;
 commit;
 "#,
                 table = self.name,
                 columns = self.columns.join(","),
-                values = self.values.join(",")
+                values = self.values.join(",\n  ")
             )
             .as_bytes(),
         )?;
@@ -257,7 +149,9 @@ trait SourceRow: Sized + serde::de::DeserializeOwned {
     fn id() -> IdMaps;
 
     fn offset() -> usize {
-        0
+        // inserts where a primary key is 0 are interpreted as not being set and
+        // are incremented to 1, to prevent duplicates we must offset from 1.
+        1
     }
 
     fn csv(path: &Path) -> Result<fs::File>;
@@ -276,6 +170,7 @@ trait SourceRows: Sized {
     fn ids(&self) -> TableIdMap;
     fn uid(&self, user: &str) -> usize;
     fn mid(&self, pid: &str, dsid: &str) -> usize;
+    fn fid(&self, pid: &str, dsid: &str, version: &str) -> usize;
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]
@@ -320,8 +215,13 @@ where
 
     fn migrate_map_values(&self) -> Vec<String> {
         self.values(|(index, (hash, row))| {
-            let source_ids = row.source_ids().join(",");
-            format!("({},{},{})", hash, source_ids, index)
+            let source_ids = row
+                .source_ids()
+                .iter()
+                .map(|id| format!("'{}'", id))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("('{}',{},{})", hash, source_ids, index)
         })
     }
 }
@@ -375,6 +275,12 @@ where
         let index = MediaRow::id();
         self.ids.borrow()[&index][hash.as_str()]
     }
+
+    fn fid(&self, pid: &str, dsid: &str, version: &str) -> usize {
+        let hash = source_ids_hash(&[pid, dsid, version]);
+        let index = FileRow::id();
+        self.ids.borrow()[&index][hash.as_str()]
+    }
 }
 
 #[derive(Deserialize)]
@@ -416,7 +322,7 @@ impl TableSerializer for MigrateUserMap {
                 columns: vec!["uid", "uuid", "langcode"],
                 values: self.values(|(index, _)| {
                     let uuid = Uuid::new_v4();
-                    format!("({},{},'en')", index, uuid)
+                    format!("({},'{}','en')", index, uuid)
                 }),
             },
             Table {
@@ -430,7 +336,7 @@ impl TableSerializer for MigrateUserMap {
                     "default_langcode",
                 ],
                 values: self.values(|(index, (_, user))| {
-                    format!("({},'en',{},{},0,1)", index, user.name, now())
+                    format!("({},'en','{}',{},0,1)", index, user.name, now())
                 }),
             },
             Table {
@@ -483,7 +389,7 @@ impl TableSerializer for MigrateFileMap {
                 ],
                 values: self.values(|(index, (_, file))| {
                     format!(
-                        "({},{},'en',{},{},{},{},{},{},{})",
+                        "({},'{}','en',{},'{}','{}','{}',{},1,{},{})",
                         index,
                         Uuid::new_v4(),
                         self.uid(&file.user),
@@ -499,7 +405,7 @@ impl TableSerializer for MigrateFileMap {
             Table {
                 name: "filehash",
                 columns: vec!["fid", "sha1"],
-                values: self.values(|(index, (_, file))| format!("({},{})", index, &file.sha1)),
+                values: self.values(|(index, (_, file))| format!("({},'{}')", index, &file.sha1)),
             },
             Table {
                 name: "migrate_map_fedora_files",
@@ -555,7 +461,7 @@ impl TableSerializer for MigrateMediaMap {
                 columns: vec!["mid", "vid", "bundle", "uuid", "langcode"],
                 values: self.values(|(index, (_, media))| {
                     format!(
-                        "({},{},{},{},'en')",
+                        "({},{},'{}','{}','en')",
                         index,
                         index,
                         &media.bundle,
@@ -571,6 +477,7 @@ impl TableSerializer for MigrateMediaMap {
                     "bundle",
                     "langcode",
                     "status",
+                    "uid",
                     "name",
                     "created",
                     "changed",
@@ -578,7 +485,7 @@ impl TableSerializer for MigrateMediaMap {
                 ],
                 values: self.values(|(index, (_, media))| {
                     format!(
-                        "({},{},{},'en',1,{},{},{},{}, 1)",
+                        "({},{},'{}','en',1,{},'{}',{},{}, 1)",
                         index,
                         index,
                         &media.bundle,
@@ -640,9 +547,9 @@ impl SourceRow for MediaRevisionRow {
     }
 }
 
-type MigrateMediaRevisionMap = MigrateMap<MediaRevisionRow>;
+type MigrateMediaRevisionMapExcludingMigration = MigrateMap<MediaRevisionRow>;
 
-impl TableSerializer for MigrateMediaRevisionMap {
+impl TableSerializer for MigrateMediaRevisionMapExcludingMigration {
     fn tables(&self) -> Vec<Table> {
         vec![
             Table {
@@ -672,6 +579,7 @@ impl TableSerializer for MigrateMediaRevisionMap {
                     "vid",
                     "langcode",
                     "status",
+                    "uid",
                     "name",
                     "created",
                     "changed",
@@ -679,7 +587,7 @@ impl TableSerializer for MigrateMediaRevisionMap {
                 ],
                 values: self.values(|(index, (_, media))| {
                     format!(
-                        "({},{},'en',1,{},{},{},{}, 1)",
+                        "({},{},'en',1,{},'{}',{},{}, 1)",
                         self.mid(&media.pid, &media.dsid),
                         index,
                         self.uid(&media.user),
@@ -690,17 +598,72 @@ impl TableSerializer for MigrateMediaRevisionMap {
                 }),
             },
             Table {
-                name: "migrate_map_fedora_media_revisions",
+                name: "file_usage",
                 columns: vec![
-                    "source_ids_hash",
-                    "sourceid1",
-                    "sourceid2",
-                    "sourceid3",
-                    "destid1",
+                    "fid",
+                    "module",
+                    "type",
+                    "id",
+                    "count",
                 ],
-                values: self.migrate_map_values(),
+                values: self.values(|(index, (_, media))| {
+                    format!(
+                        "({},'file','media',{},1)",
+                        self.fid(&media.pid, &media.dsid, &media.version),
+                        index,
+                    )
+                }),
             },
         ]
+    }
+}
+
+// Need a separate structure for revision mapping since the migration is meant
+// to only handle those revisions which are not the latest.
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct MediaRevisionMigrateMapRow {
+    pid: String,
+    dsid: String,
+    version: String,
+    bundle: String,
+    created_date: String,
+    file_size: String,
+    label: String,
+    mime_type: String,
+    name: String,
+    user: String,
+}
+
+impl SourceRow for MediaRevisionMigrateMapRow {
+    fn id() -> IdMaps {
+        IdMaps::VID
+    }
+
+    fn csv(path: &Path) -> Result<fs::File> {
+        Ok(fs::File::open(path.join("media_revisions.csv"))?)
+    }
+
+    fn source_ids(&self) -> Vec<&str> {
+        vec![self.pid.as_str(), self.dsid.as_str(), self.version.as_str()]
+    }
+}
+
+type MigrateMediaRevisionMapMigrationOnly = MigrateMap<MediaRevisionMigrateMapRow>;
+
+impl TableSerializer for MigrateMediaRevisionMapMigrationOnly {
+    fn tables(&self) -> Vec<Table> {
+        vec![Table {
+            name: "migrate_map_fedora_media_revisions",
+            columns: vec![
+                "source_ids_hash",
+                "sourceid1",
+                "sourceid2",
+                "sourceid3",
+                "destid1",
+            ],
+            values: self.migrate_map_values(),
+        }]
     }
 }
 
@@ -724,6 +687,10 @@ impl SourceRow for NodeRow {
         IdMaps::NID
     }
 
+    fn offset() -> usize {
+        100 // Account for default content created on install.
+    }
+
     fn csv(path: &Path) -> Result<fs::File> {
         Ok(fs::File::open(path.join("nodes.csv"))?)
     }
@@ -743,10 +710,30 @@ impl TableSerializer for MigrateNodeMap {
                 columns: vec!["nid", "vid", "type", "uuid", "langcode"],
                 values: self.values(|(index, _)| {
                     format!(
-                        "({},{},'islandora_object',{},'en')",
+                        "({},{},'islandora_object','{}','en')",
                         index,
                         index,
                         Uuid::new_v4()
+                    )
+                }),
+            },
+            Table {
+                name: "node_revision",
+                columns: vec![
+                    "nid",
+                    "vid",
+                    "langcode",
+                    "revision_uid",
+                    "revision_timestamp",
+                    "revision_default",
+                ],
+                values: self.values(|(index, (_, node))| {
+                    format!(
+                        "({},{},'en',{},{},1)",
+                        index,
+                        index,
+                        self.uid(&node.user),
+                        &node.modified_date
                     )
                 }),
             },
@@ -768,11 +755,11 @@ impl TableSerializer for MigrateNodeMap {
                 ],
                 values: self.values(|(index, (_, node))| {
                     format!(
-                        "({},{},'islandora_object','en',1,{},{},{},{},1,0,1)",
+                        "({},{},'islandora_object','en',1,{},'{}',{},{},1,0,1)",
                         index,
                         index,
                         self.uid(&node.user),
-                        &node.label,
+                        &node.label.escape_default(),
                         &node.created_date,
                         &node.modified_date,
                     )
@@ -795,11 +782,11 @@ impl TableSerializer for MigrateNodeMap {
                 ],
                 values: self.values(|(index, (_, node))| {
                     format!(
-                        "({},{},'en',1,{},{},{},{},1,0,1)",
+                        "({},{},'en',1,{},'{}',{},{},1,0,1)",
                         index,
                         index,
                         self.uid(&node.user),
-                        &node.label,
+                        &node.label.escape_default(),
                         &node.created_date,
                         &node.modified_date,
                     )
@@ -861,14 +848,112 @@ fn write_tables(path: &Path, mut file: fs::File) -> Result<()> {
     dump::<MigrateUserMap>(&mut file, &path, ids.clone())?;
     dump::<MigrateFileMap>(&mut file, &path, ids.clone())?;
     dump::<MigrateMediaMap>(&mut file, &path, ids.clone())?;
-    dump::<MigrateMediaRevisionMap>(&mut file, &path, ids.clone())?;
+    dump::<MigrateMediaRevisionMapExcludingMigration>(&mut file, &path, ids.clone())?;
+    dump::<MigrateMediaRevisionMapMigrationOnly>(&mut file, &path, ids.clone())?;
     dump::<MigrateNodeMap>(&mut file, &path, ids)?;
     Ok(())
 }
 
+// Migration mapping tables do not exist until a migration is run so we must
+// create them here since this is intended to run before any content is created.
+struct MigrateMapTable {
+    name: &'static str,
+    sources: usize,
+}
+
+impl ToString for MigrateMapTable {
+    fn to_string(&self) -> String {
+        let sources = (1..self.sources + 1)
+            .map(|i| format!("`sourceid{}` varchar(255) NOT NULL,", i))
+            .collect::<Vec<_>>()
+            .join("\n    ");
+        let source_keys = (1..self.sources + 1)
+            .map(|i| format!("`sourceid{}`(191)", i))
+            .collect::<Vec<_>>()
+            .join(",");
+        let source_keys = format!("KEY `source` ({})", source_keys);
+        return format!(
+            r#"
+--
+-- Table structure for table `migrate_map_{name}`
+--
+
+DROP TABLE IF EXISTS `migrate_map_{name}`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `migrate_map_{name}` (
+    `source_ids_hash` varchar(64) NOT NULL COMMENT 'Hash of source ids. Used as primary key',
+    {sources}
+    `destid1` int(10) unsigned DEFAULT NULL,
+    `source_row_status` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Indicates current status of the source row',
+    `rollback_action` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Flag indicating what to do for this item on rollback',
+    `last_imported` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'UNIX timestamp of the last time this row was imported',
+    `hash` varchar(64) DEFAULT NULL COMMENT 'Hash of source row data, for detecting changes',
+    PRIMARY KEY (`source_ids_hash`),
+    {source_keys}
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Mappings from source identifier value(s) to destination…';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `migrate_message_{name}`
+--
+
+DROP TABLE IF EXISTS `migrate_message_{name}`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `migrate_message_{name}` (
+    `msgid` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `source_ids_hash` varchar(64) NOT NULL COMMENT 'Hash of source ids. Used as primary key',
+    `level` int(10) unsigned NOT NULL DEFAULT 1,
+    `message` mediumtext NOT NULL,
+    PRIMARY KEY (`msgid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Messages generated during a migration process';
+/*!40101 SET character_set_client = @saved_cs_client */;
+"#,
+            name = self.name,
+            sources = sources,
+            source_keys = source_keys
+        );
+    }
+}
+
+fn create_tables_preamble() -> String {
+    [
+        MigrateMapTable {
+            name: "fedora_users",
+            sources: 1,
+        },
+        MigrateMapTable {
+            name: "fedora_files",
+            sources: 3,
+        },
+        MigrateMapTable {
+            name: "fedora_media",
+            sources: 2,
+        },
+        MigrateMapTable {
+            name: "fedora_media_fields",
+            sources: 2,
+        },
+        MigrateMapTable {
+            name: "fedora_media_revisions",
+            sources: 3,
+        },
+        MigrateMapTable {
+            name: "fedora_nodes",
+            sources: 1,
+        },
+    ]
+    .iter()
+    .map(|table| table.to_string())
+    .collect::<Vec<_>>()
+    .join("\n")
+}
+
 pub fn generate_sql(input: &Path, dest: &Path) {
     let mut file = fs::File::create(dest.join("migrate.sql")).unwrap();
-    file.write_all(&CREATE_TABLES_PREAMBLE.as_bytes()).unwrap();
+    file.write_all(&create_tables_preamble().as_bytes())
+        .unwrap();
     write_tables(&input, file).unwrap();
 }
 
