@@ -199,7 +199,10 @@ fn create_engine(objects: Arc<RwLock<ObjectMap>>, modules: Vec<&Path>) -> Engine
 }
 
 fn is_rhai_file(path: &Path) -> bool {
-    path.extension().unwrap().to_string_lossy() == "rhai"
+    match path.extension() {
+        Some(extension) => extension.to_string_lossy() == "rhai",        
+        None => false,
+    }    
 }
 
 fn is_script(path: &Path) -> bool {
