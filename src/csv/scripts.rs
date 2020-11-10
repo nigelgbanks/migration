@@ -46,6 +46,31 @@ type Header = Vec<String>;
 type Rows = Vec<Row>;
 type ProgressBars = HashMap<Box<Path>, ProgressBar>;
 
+fn edtf(value: ImmutableString) -> String {
+    if let Ok(date) = DateTime::parse_from_rfc2822(&value) {
+        return date.to_rfc3339();
+    } else if let Ok(date) = DateTime::parse_from_rfc3339(&value) {
+        return date.to_rfc3339();
+    }
+    let re = Regex::new(r"\d{4}-\d{2}-\d{2}").unwrap();
+    if let Some(found) = re.find(&value) {
+        if let Ok(date) = NaiveDate::parse_from_str(&found.as_str(), "%Y-%m-%d") {
+            return date.format("%Y-%m-%d").to_string();
+        }
+    }
+    "".to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_edtf() {
+        assert_eq!(edtf("1900-01-01".into()), "1900-01-01".to_string(), "Dates equal");
+    }
+}
+
 fn create_engine(objects: Arc<RwLock<ObjectMap>>, modules: Vec<&Path>) -> Engine {
     let mut engine = Engine::new();
 
@@ -105,20 +130,7 @@ fn create_engine(objects: Arc<RwLock<ObjectMap>>, modules: Vec<&Path>) -> Engine
         },
     );
 
-    engine.register_fn("edtf", |value: ImmutableString| -> String {
-        if let Ok(date) = DateTime::parse_from_rfc2822(&value) {
-            return date.to_rfc3339();
-        } else if let Ok(date) = DateTime::parse_from_rfc3339(&value) {
-            return date.to_rfc3339();
-        }
-        let re = Regex::new(r"\d{4}-\d{2}-\d{2}").unwrap();
-        if let Some(found) = re.find(&value) {
-            if let Ok(date) = NaiveDate::parse_from_str(&found.as_str(), "%Y-%m-%d") {
-                return date.format("%Y-%m-%d").to_string();
-            }
-        }
-        "".to_string()
-    });
+    engine.register_fn("edtf", edtf);
 
     // Object properties.
     engine.register_get("pid", |object: &mut Object| object.pid.0.clone());
