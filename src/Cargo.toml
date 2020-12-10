@@ -17,3 +17,6 @@ log = "0.4.11"
 logger = { path = "./logger" }
 migrate = { path = "./migrate" }
 sql = { path = "./sql" }
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+jemallocator = "0.3.2"
