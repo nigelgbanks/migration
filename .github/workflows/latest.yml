@@ -22,10 +22,9 @@ jobs:
           args: --release --all-features
       - name: Compress binary
         run: strip target/release/migration
-      - name: Release
-        uses: softprops/action-gh-release@v1
+      - uses: ncipollo/release-action@v1
         with:
-          fail_on_unmatched_files: true
-          files: target/release/migration
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "target/release/migration"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+          replacesArtifacts: true
