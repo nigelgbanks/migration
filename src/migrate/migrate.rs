@@ -138,11 +138,16 @@ fn migrate_by_move(path: &Path, dest: &Path, checksum: bool) -> MigrationResult 
     if should_migrate_file(&path, &dest, checksum) {
         create_parent_directories(&dest);
         fs::rename(&path, &dest).unwrap_or_else(|_| {
-            panic!(
-                "Failed to move file {} to {}",
-                &path.to_string_lossy(),
-                &dest.to_string_lossy()
-            )
+            // If from and to are on a separate filesystem rename cannot be used
+            // so fall back to copying.
+            fs::copy(&path, &dest).unwrap_or_else(|error| {
+              panic!(
+                  "Failed to move/copy file {} to {}, with error: {}",
+                  &path.to_string_lossy(),
+                  &dest.to_string_lossy(),
+                  error
+              )
+            });
         });
         return if existed { Updated } else { Migrated };
     }
