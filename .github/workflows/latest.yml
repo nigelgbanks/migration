@@ -20,6 +20,8 @@ jobs:
         with:
           command: test
           args: --release --all-features
+      - name: Compress binary
+        run: strip target/release/migration
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
