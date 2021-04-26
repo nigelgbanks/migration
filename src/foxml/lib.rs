@@ -237,7 +237,6 @@ impl PartialEq for Foxml {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::panic;
     use std::path::PathBuf;
 
     // Helper to get the fixtures directory.

@@ -97,7 +97,7 @@ impl CustomMap {
             } else {
                 d
             }
-        };
+        }
         self.0.into_iter().map(|(k, v)| (k, cast(v))).collect()
     }
 }
