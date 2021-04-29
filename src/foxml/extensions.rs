@@ -91,6 +91,7 @@ lazy_static! {
         m.insert("application/vnd.ms-powerpoint", "ppt");
         m.insert("application/vnd.ms-word.document.macroEnabled.12", "docm");
         m.insert("application/vnd.ms-word.template.macroEnabled.12", "dotm");
+        m.insert("application/vnd.ms-xpsdocument", "xps");
         m.insert("application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx");
         m.insert("application/vnd.openxmlformats-officedocument.presentationml.slideshow", "ppsx");
         m.insert("application/vnd.openxmlformats-officedocument.presentationml.template", "potx");
