@@ -19,6 +19,7 @@ lazy_static! {
         m.insert("application/dxf", "dxf");
         m.insert("application/ecmascript", "js");
         m.insert("application/envoy", "evy");
+        m.insert("application/epub+zip", "epub");
         m.insert("application/excel", "xls");
         m.insert("application/fractals", "fif");
         m.insert("application/freeloader", "frl");
@@ -33,6 +34,7 @@ lazy_static! {
         m.insert("application/java-byte-code", "class");
         m.insert("application/java", "class");
         m.insert("application/javascript", "js");
+        m.insert("application/json", "json");
         m.insert("application/lha", "lha");
         m.insert("application/lzx", "lzx");
         m.insert("application/mac-binary", "bin");
@@ -84,6 +86,7 @@ lazy_static! {
         m.insert("application/vnd.ms-excel.sheet.macroEnabled.12", "xlsm");
         m.insert("application/vnd.ms-excel.template.macroEnabled.12", "xltm");
         m.insert("application/vnd.ms-excel", "xls");
+        m.insert("application/vnd.ms-pki.stl", "stl");
         m.insert("application/vnd.ms-powerpoint.addin.macroEnabled.12", "ppam");
         m.insert("application/vnd.ms-powerpoint.presentation.macroEnabled.12", "pptm");
         m.insert("application/vnd.ms-powerpoint.slideshow.macroEnabled.12", "ppsm");
@@ -239,6 +242,7 @@ lazy_static! {
         m.insert("audio/s3m", "s3m");
         m.insert("audio/tsp-audio", "tsi");
         m.insert("audio/tsplayer", "tsp");
+        m.insert("audio/vnd.wave", "wav");
         m.insert("audio/voc", "voc");
         m.insert("audio/voxware", "vox");
         m.insert("audio/wav", "wav");
