@@ -710,7 +710,7 @@ impl TableSerializer for MigrateNodeMap {
                 columns: vec!["nid", "vid", "type", "uuid", "langcode"],
                 values: self.values(|(index, _)| {
                     format!(
-                        "({},{},'islandora_object','{}','en')",
+                        "({},{},'lyrasis_repository_item','{}','en')",
                         index,
                         index,
                         Uuid::new_v4()
@@ -755,7 +755,7 @@ impl TableSerializer for MigrateNodeMap {
                 ],
                 values: self.values(|(index, (_, node))| {
                     format!(
-                        "({},{},'islandora_object','en',1,{},'{}',{},{},1,0,1)",
+                        "({},{},'lyrasis_repository_item','en',1,{},'{}',{},{},1,0,1)",
                         index,
                         index,
                         self.uid(&node.user),
