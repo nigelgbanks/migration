@@ -218,8 +218,8 @@ impl<'a> FileRow<'a> {
             .rev()
             .collect::<PathBuf>()
             .into_boxed_path();
-        // Assume all files are in the public://fedora folder for now.
-        let mut path = "public://fedora/".to_string();
+        // Assume all files are in the private://fedora folder for now.
+        let mut path = "private://fedora/".to_string();
         path.push_str(&relative_path.to_str().unwrap());
         FileRow {
             pid: &object.pid.0,
