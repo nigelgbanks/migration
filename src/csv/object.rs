@@ -9,6 +9,7 @@ use quick_xml::events::attributes::Attribute;
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader;
 use rayon::prelude::*;
+use regex::Regex;
 use std::boxed::Box;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
@@ -287,6 +288,7 @@ impl RelsExt {
 
     pub fn from_path(path: &Path) -> Result<Self, RelsExtError> {
         let file = File::open(&path)?;
+        println!("RELS-EXT: {}", path.to_string_lossy());
         let reader = Reader::from_reader(BufReader::new(&file));
         Ok(RelsExt::from_reader(reader)?)
     }
@@ -431,7 +433,7 @@ impl RelsExt {
             }
             b"islandora:isPageNumber" => {
                 let text = Self::get_text(&mut reader);
-                rels_ext.isPageNumber = Some(text.parse().unwrap());
+                rels_ext.isPageNumber = Self::parse_integer(text);
             }
             b"islandora:isPageOf" => {
                 let attribute = Self::get_resource_attribute(&element);
@@ -439,11 +441,11 @@ impl RelsExt {
             }
             b"islandora:isSection" => {
                 let text = Self::get_text(&mut reader);
-                rels_ext.isSection = Some(text.parse().unwrap());
+                rels_ext.isSection = Self::parse_integer(text);
             }
             b"islandora:isSequenceNumber" => {
                 let text = Self::get_text(&mut reader);
-                rels_ext.isSequenceNumber = Some(text.parse().unwrap());
+                rels_ext.isSequenceNumber = Self::parse_integer(text);
             }
             _ => {
                 // Compounds are weird.
@@ -452,6 +454,11 @@ impl RelsExt {
                 }
             }
         };
+    }
+
+    fn parse_integer(text: String) -> Option<isize> {
+        let re = Regex::new(r"[^0-9]").unwrap();
+        re.replace_all(&text, "").parse().ok()
     }
 
     // Get an attribute with the given name if it exists.
@@ -505,7 +512,7 @@ impl RelsExt {
             let pid = &name[predicate.len()..];
             let pid = pid.replacen("_", ":", 1);
             let text = Self::get_text(&mut reader);
-            Some((pid, text.parse().unwrap()))
+            Some((pid, Self::parse_integer(text).unwrap_or(0)))
         } else {
             None
         }
@@ -732,7 +739,11 @@ impl ObjectMap {
             .filter(|result| {
                 result
                     .as_ref()
-                    .map(|(_, object)| !(object.is_system_object() || object.is_content_model() || object.missing_content_model()))
+                    .map(|(_, object)| {
+                        !(object.is_system_object()
+                            || object.is_content_model()
+                            || object.missing_content_model())
+                    })
                     .map_err(|_| true)
                     .unwrap()
             })
@@ -820,7 +831,7 @@ xmlns:islandora="http://islandora.ca/ontology/relsext#">
         <islandora:isSequenceNumberOfnamespace_100>321</islandora:isSequenceNumberOfnamespace_100>
         <islandora:isSequenceNumberOfnamespace_101>654</islandora:isSequenceNumberOfnamespace_101>
         <islandora:isPageOf rdf:resource="info:fedora/namespace:101"></islandora:isPageOf>
-        <islandora:isSequenceNumber>1</islandora:isSequenceNumber>
+        <islandora:isSequenceNumber>001a</islandora:isSequenceNumber>
         <islandora:isPageNumber>2</islandora:isPageNumber>
         <islandora:isSection>1</islandora:isSection>
         <islandora:generate_ocr>TRUE</islandora:generate_ocr>
