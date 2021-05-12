@@ -288,7 +288,6 @@ impl RelsExt {
 
     pub fn from_path(path: &Path) -> Result<Self, RelsExtError> {
         let file = File::open(&path)?;
-        println!("RELS-EXT: {}", path.to_string_lossy());
         let reader = Reader::from_reader(BufReader::new(&file));
         Ok(RelsExt::from_reader(reader)?)
     }
