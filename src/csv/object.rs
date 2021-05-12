@@ -558,10 +558,16 @@ impl Object {
                 datastreams
             },
         };
-        let rels_ext = object.rels_ext();
-        object.model = Object::model(&rels_ext);
-        object.parents = Object::parents(&rels_ext);
-        object.weight = Object::weight(&rels_ext);
+        if let Some(rels_ext) = object.rels_ext() {
+            object.model = Object::model(&rels_ext);
+            object.parents = Object::parents(&rels_ext);
+            object.weight = Object::weight(&rels_ext);
+        } else {
+            // No RELS-EXT.
+            object.model = String::from("");
+            object.parents = vec![];
+            object.weight = None;
+        }
         object
     }
 
@@ -570,6 +576,10 @@ impl Object {
             .unwrap_or_else(|_| panic!("Failed to read file: {}", &path.to_string_lossy()));
         let foxml = Foxml::new(&foxml)?;
         Ok(Object::new(foxml))
+    }
+
+    pub fn missing_content_model(&self) -> bool {
+        self.model.is_empty()
     }
 
     pub fn is_system_object(&self) -> bool {
@@ -641,16 +651,17 @@ impl Object {
         }
     }
 
-    fn rels_ext(&self) -> RelsExt {
-        let latest_version = self
+    fn rels_ext(&self) -> Option<RelsExt> {
+        let rels_ext = self
             .datastreams
             .iter()
-            .find(|&datastream| datastream.id == "RELS-EXT")
-            .unwrap()
-            .versions
-            .last()
-            .unwrap();
-        RelsExt::from_path(&latest_version.path()).expect("Failed to parse RELS-EXT")
+            .find(|&datastream| datastream.id == "RELS-EXT");
+        if let Some(datastream) = rels_ext {
+            let latest_version = datastream.versions.last().unwrap();
+            Some(RelsExt::from_path(&latest_version.path()).expect("Failed to parse RELS-EXT"))
+        } else {
+            None
+        }
     }
 
     fn create_datastream(pid: &str, datastream: FoxmlDatastream) -> Datastream {
@@ -721,7 +732,7 @@ impl ObjectMap {
             .filter(|result| {
                 result
                     .as_ref()
-                    .map(|(_, object)| !(object.is_system_object() || object.is_content_model()))
+                    .map(|(_, object)| !(object.is_system_object() || object.is_content_model() || object.missing_content_model()))
                     .map_err(|_| true)
                     .unwrap()
             })
