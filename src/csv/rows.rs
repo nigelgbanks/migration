@@ -42,20 +42,23 @@ lazy_static! {
     };
     static ref MODEL_MAP: HashMap<&'static str, Model> = {
         let mut m = HashMap::new();
-        m.insert("islandora:collectionCModel", Model::Collection);
-        m.insert("islandora:sp_basic_image", Model::BasicImage);
-        m.insert("islandora:sp_large_image_cmodel", Model::LargeImage);
-        m.insert("islandora:sp-audioCModel", Model::Audio);
-        m.insert("islandora:sp_videoCModel", Model::Video);
-        m.insert("islandora:sp_pdf", Model::PDF);
+        m.insert("ir:citationCModel", Model::Citation);
+        m.insert("ir:thesisCModel", Model::Thesis);
+        m.insert("islandora:aspaceCModel", Model::Binary); // Not yet supported.
+        m.insert("islandora:binaryCModel", Model::Binary);
+        m.insert("islandora:binaryObjectCModel", Model::Binary);
         m.insert("islandora:bookCModel", Model::Book);
-        m.insert("islandora:pageCModel", Model::Page);
+        m.insert("islandora:collectionCModel", Model::Collection);
+        m.insert("islandora:compoundCModel", Model::Compound);
         m.insert("islandora:newspaperCModel", Model::Newspaper);
         m.insert("islandora:newspaperIssueCModel", Model::NewspaperIssue);
         m.insert("islandora:newspaperPageCModel", Model::NewspaperPage);
-        m.insert("islandora:compoundCModel", Model::Compound);
-        m.insert("islandora:binaryCModel", Model::Binary);
-        m.insert("islandora:binaryObjectCModel", Model::Binary);
+        m.insert("islandora:pageCModel", Model::Page);
+        m.insert("islandora:sp_basic_image", Model::BasicImage);
+        m.insert("islandora:sp_large_image_cmodel", Model::LargeImage);
+        m.insert("islandora:sp_pdf", Model::PDF);
+        m.insert("islandora:sp_videoCModel", Model::Video);
+        m.insert("islandora:sp-audioCModel", Model::Audio);
         m
     };
 }
@@ -66,6 +69,7 @@ enum Model {
     BasicImage,
     Binary,
     Book,
+    Citation,
     Collection,
     Compound,
     LargeImage,
@@ -74,6 +78,7 @@ enum Model {
     NewspaperPage,
     Page,
     PDF,
+    Thesis,
     Video,
 }
 
@@ -95,14 +100,16 @@ impl Model {
             Model::BasicImage => "http://purl.org/coar/resource_type/c_c513",
             Model::Binary => "http://purl.org/coar/resource_type/c_1843",
             Model::Book => "https://schema.org/Book",
+            Model::Citation => "http://vocab.getty.edu/aat/300311705",
             Model::Collection => "http://purl.org/dc/dcmitype/Collection",
-            Model::Compound => "http://purl.org/dc/dcmitype/Collection",
+            Model::Compound => "http://vocab.getty.edu/aat/300242735",
             Model::LargeImage => "http://purl.org/coar/resource_type/c_c513",
             Model::Newspaper => "https://schema.org/Book",
             Model::NewspaperIssue => "https://schema.org/PublicationIssue",
             Model::NewspaperPage => "http://id.loc.gov/ontologies/bibframe/part",
             Model::Page => "http://id.loc.gov/ontologies/bibframe/part",
             Model::PDF => "https://schema.org/DigitalDocument",
+            Model::Thesis => "http://vocab.getty.edu/aat/300028028",
             Model::Video => "http://purl.org/coar/resource_type/c_12ce",
         }
     }
