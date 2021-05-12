@@ -40,13 +40,18 @@ pub trait Identifier {
 }
 
 // Find all files recursively in the given folder.
-pub fn files(path: &Path) -> Paths {
+pub fn files(path: &Path, exclude: Vec<&Path>) -> Paths {
     let spinner = logger::spinner();
     let count = atomic::AtomicUsize::new(0);
     WalkDir::new(&path)
         .follow_links(false)
         .into_iter()
         .par_bridge()
+        .filter(|entry| {
+          entry
+              .as_ref()
+              .map_or(false, |e| !exclude.contains(&e.path()))
+        })
         .filter(|entry| {
             entry
                 .as_ref()
@@ -68,13 +73,13 @@ pub fn files(path: &Path) -> Paths {
 }
 
 // Returns a tuple consisting of a map of identifiers to paths.
-pub fn identify_files<T>(path: &Path) -> IdentifierPathMap<T>
+pub fn identify_files<T>(src: &Path, dest: &Path) -> IdentifierPathMap<T>
 where
     T: Identifier<Item = T> + Ord + Sync + Send,
 {
     let map = Mutex::new(BTreeMap::new());
     let failed = Mutex::new(Paths::new());
-    files(&path)
+    files(&src, vec![dest])
         .into_par_iter()
         .for_each(|path| match T::from_path(&path) {
             Some(identifier) => {

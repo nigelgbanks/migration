@@ -22,7 +22,7 @@ static POLICY_STORE: &str = "data/fedora-xacml-policies/repository-policies";
 fn migrate_policy_files(src: &Path, dest: &Path, copy: bool, checksum: bool) {
     info!("Searching Fedora for policy files");
 
-    let policy_files = identifiers::files(&src);
+    let policy_files = identifiers::files(&src, vec![dest]);
 
     // Map source files to destination files.
     let identified_files = policy_files
@@ -45,7 +45,7 @@ fn migrate_object_files(
     checksum: bool,
 ) -> identifiers::FoxmlPathMap {
     info!("Searching Fedora for object files");
-    let object_files: ObjectPathMap = identify_files(&src);
+    let object_files: ObjectPathMap = identify_files(&src, &dest);
 
     // Map source files to destination files.
     let identified_files = object_files
@@ -61,7 +61,7 @@ fn migrate_object_files(
     info!("Finished migrating object files: {}", results);
 
     info!("Building list of migrated object files.");
-    let object_files = files(&dest);
+    let object_files = files(&dest, vec![]);
 
     // Validate that the migrated files can be deserialized to Foxml object prior to migrating.
     info!("Parsing {} object files.", object_files.len());
@@ -76,7 +76,7 @@ fn migrate_managed_datastreams(
     checksum: bool,
 ) {
     info!("Searching Fedora datastream store for files.");
-    let files: DatastreamPathMap = identify_files(&src);
+    let files: DatastreamPathMap = identify_files(&src, &dest);
 
     // All managed datastreams referenced in object files.
     // May be more/less than files in the datastreamStore folder.
@@ -163,7 +163,7 @@ pub fn migrate_data_from_fedora(
     info!(
         "In total {} objects, and {} datastreams have been migrated",
         objects.len(),
-        identifiers::files(&datastreams_directory).len()
+        identifiers::files(&datastreams_directory, vec![]).len()
     );
 }
 
