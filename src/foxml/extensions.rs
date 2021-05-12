@@ -167,6 +167,7 @@ lazy_static! {
         m.insert("application/x-midi", "midi");
         m.insert("application/x-mif", "mif");
         m.insert("application/x-mix-transfer", "nix");
+        m.insert("application/x-mobipocket-ebook", "mobi");
         m.insert("application/x-mplayer2", "asx");
         m.insert("application/x-msexcel", "xls");
         m.insert("application/x-mspowerpoint", "ppt");
