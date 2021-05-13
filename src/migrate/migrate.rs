@@ -187,7 +187,7 @@ pub fn migrate_files(files: &PathMap, copy: bool, checksum: bool) -> MigrationRe
 }
 
 pub fn migrate_inline_content<F>(
-    objects: &FoxmlPathMap,
+    objects: &Vec<Box<Path>>,
     dest: &DatastreamPathMap,
     extract: F,
     checksum: bool,
@@ -198,7 +198,7 @@ where
     let progress_bar = logger::progress_bar(dest.len() as u64);
     let results = objects
         .par_iter()
-        .flat_map(|(_, (path, _))| {
+        .flat_map(|path| {
             let datastreams = extract(&path);
             datastreams
                 .iter()

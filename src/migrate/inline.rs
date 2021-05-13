@@ -176,7 +176,10 @@ fn extract_inline_datastreams(path: &Path) -> DatastreamContentMap {
 }
 
 // Extracts all the inline datastreams to the given destination.
-pub fn migrate_inline_datastreams(objects: &FoxmlPathMap, dest: &Path, checksum: bool) {
+pub fn migrate_inline_datastreams(objects: &Vec<Box<Path>>, dest: &Path, checksum: bool) {
+    info!("Migrating inline datastreams in {} object files.",
+      objects.len()
+    );
     let inline_datastreams = datastreams(&objects, FoxmlControlGroup::X, &dest);
     info!(
         "Found {} inline datastreams in {} object files.",

@@ -1,6 +1,6 @@
 // Represents identifiers extracted from Fedora datastreamStore and objectStore folders.
 // @see https://wiki.lyrasis.org/display/FEDORA35/Fedora+Identifiers
-use log::warn;
+use log::{error, warn};
 use rayon::prelude::*;
 use regex::Regex;
 use std::borrow::Cow;
@@ -18,8 +18,6 @@ pub type IdentifierPathMap<T> = BTreeMap<T, Box<Path>>;
 pub type ObjectPathMap = BTreeMap<ObjectIdentifier, Box<Path>>;
 pub type DatastreamPathMap = BTreeMap<DatastreamIdentifier, Box<Path>>;
 pub type DatastreamContentMap = BTreeMap<DatastreamIdentifier, String>;
-pub type FoxmlPathMap = BTreeMap<ObjectIdentifier, (Box<Path>, foxml::Foxml)>;
-pub type FoxmlErrors = Vec<(Box<Path>, foxml::FoxmlError)>;
 
 lazy_static! {
     // e.g info%3Afedora%2Farchden%3A13
@@ -101,78 +99,58 @@ where
     map.into_inner().unwrap()
 }
 
-pub fn objects(files: Paths) -> FoxmlPathMap {
-    let progress_bar = logger::progress_bar(files.len() as u64);
-    let map = Mutex::new(FoxmlPathMap::new());
-    let failed = Mutex::new(FoxmlErrors::new());
-    files.into_par_iter().for_each(|path| {
-        match foxml::Foxml::from_path(&path) {
-            Ok(foxml) => {
-                map.lock().unwrap().insert(
-                    ObjectIdentifier {
-                        pid: foxml.pid.clone(),
-                    },
-                    (path.to_owned(), foxml),
-                );
-            }
-            Err(error) => failed.lock().unwrap().push((path.to_owned(), error)),
-        }
-        progress_bar.inc(1);
-    });
-    let failed = failed.into_inner().unwrap();
-    if !failed.is_empty() {
-        warn!(
-            "The following Foxml files could not be parsed:\n\t{}",
-            failed
-                .into_iter()
-                .map(|(path, error)| format!("{} => {}", path.to_string_lossy(), error))
-                .collect::<Vec<_>>()
-                .join("\n\t")
-        );
-    }
-    map.into_inner().unwrap()
-}
-
 pub fn datastreams(
-    objects: &FoxmlPathMap,
+    objects: &Vec<Box<Path>>,
     group: foxml::FoxmlControlGroup,
     dest: &Path,
 ) -> DatastreamPathMap {
     objects
         .par_iter()
-        .flat_map(|(_, (_, object))| {
-            object
-                .datastreams
-                .par_iter()
-                .filter(|datastream| datastream.control_group == group)
-                .flat_map(|datastream| {
-                    datastream
-                        .versions
-                        .par_iter()
-                        .map(|version| {
-                            let identifier = DatastreamIdentifier {
-                                pid: object.pid.clone(),
-                                dsid: datastream.id.clone(),
-                                version: version.id.clone(),
-                            };
-                            // Some datastreams have an appropriate label like '01-01-1942_web.pdf', but
-                            // others are things like 'MODS'. So we do a basic check to see if the version
-                            // label appears to be a valid name with an known extension if so we use the label
-                            // otherwise we generate one based on the the datastream.
-                            let file_name = foxml::extensions::version_file_name(
-                                &object.pid,
-                                &version.id,
-                                &version.label,
-                                &version.mime_type,
-                            );
-                            let mut dest = PathBuf::from(dest);
-                            dest.push(identifier.as_path());
-                            dest.push(file_name);
-                            (identifier, dest.into_boxed_path())
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>()
+        .flat_map(|path| {
+            match foxml::Foxml::from_path(&path) {
+                Ok(object) => {
+                  object
+                  .datastreams
+                  .par_iter()
+                  .filter(|datastream| datastream.control_group == group)
+                  .flat_map(|datastream| {
+                      datastream
+                          .versions
+                          .par_iter()
+                          .map(|version| {
+                              let identifier = DatastreamIdentifier {
+                                  pid: object.pid.clone(),
+                                  dsid: datastream.id.clone(),
+                                  version: version.id.clone(),
+                              };
+                              // Some datastreams have an appropriate label like '01-01-1942_web.pdf', but
+                              // others are things like 'MODS'. So we do a basic check to see if the version
+                              // label appears to be a valid name with an known extension if so we use the label
+                              // otherwise we generate one based on the the datastream.
+                              let file_name = foxml::extensions::version_file_name(
+                                  &object.pid,
+                                  &version.id,
+                                  &version.label,
+                                  &version.mime_type,
+                              );
+                              let mut dest = PathBuf::from(dest);
+                              dest.push(identifier.as_path());
+                              dest.push(file_name);
+                              (identifier, dest.into_boxed_path())
+                          })
+                          .collect::<Vec<_>>()
+                  })
+                  .collect::<Vec<_>>()
+                }
+                Err(err) => {
+                    error!(
+                        "Failed to parse file: {}, with error: {}",
+                        &path.to_string_lossy(),
+                        err
+                    );
+                    vec![]
+                }
+            }
         })
         .collect::<DatastreamPathMap>()
 }

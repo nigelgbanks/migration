@@ -43,7 +43,7 @@ fn migrate_object_files(
     dest: &Path,
     copy: bool,
     checksum: bool,
-) -> identifiers::FoxmlPathMap {
+) -> Vec<Box<Path>> {
     info!("Searching Fedora for object files");
     let object_files: ObjectPathMap = identify_files(&src, &dest);
 
@@ -61,15 +61,11 @@ fn migrate_object_files(
     info!("Finished migrating object files: {}", results);
 
     info!("Building list of migrated object files.");
-    let object_files = files(&dest, vec![]);
-
-    // Validate that the migrated files can be deserialized to Foxml object prior to migrating.
-    info!("Parsing {} object files.", object_files.len());
-    objects(object_files)
+    files(&dest, vec![])
 }
 
 fn migrate_managed_datastreams(
-    objects: &FoxmlPathMap,
+    objects: &Vec<Box<Path>>,
     src: &Path,
     dest: &Path,
     copy: bool,
