@@ -4,7 +4,7 @@
 use super::utils::*;
 use chrono::{DateTime, FixedOffset};
 use foxml::*;
-use log::info;
+use log::{error, info};
 use quick_xml::events::attributes::Attribute;
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader;
@@ -577,11 +577,21 @@ impl Object {
         object
     }
 
-    pub fn from_path(path: &Path) -> Result<Self, FoxmlError> {
+    pub fn from_path(path: &Path) -> Option<Self> {
         let foxml = std::fs::read_to_string(&path)
             .unwrap_or_else(|_| panic!("Failed to read file: {}", &path.to_string_lossy()));
-        let foxml = Foxml::new(&foxml)?;
-        Ok(Object::new(foxml))
+        let result = Foxml::new(&foxml);
+        match result {
+            Ok(foxml) => Some(Object::new(foxml)),
+            Err(err) => {
+                error!(
+                    "Failed to parse file: {}, with error: {}",
+                    &path.to_string_lossy(),
+                    err
+                );
+                None
+            }
+        }
     }
 
     pub fn missing_content_model(&self) -> bool {
@@ -729,25 +739,24 @@ impl ObjectMap {
         let progress_bar = logger::progress_bar(object_paths.len() as u64);
         let inner = object_paths
             .par_iter()
-            .map(|path| {
-                let object = Object::from_path(&path)?;
+            .filter_map(|path| {
                 progress_bar.inc(1);
-                Ok((object.pid.clone(), object))
-            })
-            // Ignore system objects & content models, keep any errors to be dealt with later.
-            .filter(|result| {
-                result
-                    .as_ref()
-                    .map(|(_, object)| {
-                        !(object.is_system_object()
+                match Object::from_path(&path) {
+                    Some(object) => {
+                        // Ignore system objects & content models.
+                        if !(object.is_system_object()
                             || object.is_content_model()
                             || object.missing_content_model())
-                    })
-                    .map_err(|_| true)
-                    .unwrap()
+                        {
+                            Some((object.pid.clone(), object))
+                        } else {
+                            None
+                        }
+                    }
+                    None => None,
+                }
             })
-            .collect::<Result<ObjectMapInner, FoxmlError>>()
-            .expect("Failed to parse object files.");
+            .collect::<ObjectMapInner>();
         Self(inner)
     }
 
