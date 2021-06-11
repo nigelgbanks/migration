@@ -104,6 +104,7 @@ lazy_static! {
         m.insert("application/vnd.openxmlformats-officedocument.wordprocessingml.template", "dotx");
         m.insert("application/vocaltec-media-desc", "vmd");
         m.insert("application/vocaltec-media-file", "vmf");
+        m.insert("application/warc", "warc");
         m.insert("application/wordperfect", "wp");
         m.insert("application/x-123", "wk1");
         m.insert("application/x-aim", "aim");
@@ -134,6 +135,7 @@ lazy_static! {
         m.insert("application/x-envoy", "env");
         m.insert("application/x-esrehber", "es");
         m.insert("application/x-excel", "xls");
+        m.insert("application/x-flac", "flac");
         m.insert("application/x-frame", "mif");
         m.insert("application/x-freelance", "pre");
         m.insert("application/x-gsp", "gsp");
@@ -147,6 +149,7 @@ lazy_static! {
         m.insert("application/x-internett-signup", "ins");
         m.insert("application/x-inventor", "iv");
         m.insert("application/x-ip2", "ip");
+        m.insert("application/x-iso9660-image", "iso");
         m.insert("application/x-java-class", "class");
         m.insert("application/x-java-commerce", "jcm");
         m.insert("application/x-javascript", "js");
@@ -224,10 +227,12 @@ lazy_static! {
         m.insert("application/x-world", "wrl");
         m.insert("application/x-wpwin", "wpd");
         m.insert("application/x-wri", "wri");
+        m.insert("application/x-www-form-urlencoded", "warc");
         m.insert("application/x-x509-ca-cert", "crt");
         m.insert("application/x-x509-user-cert", "crt");
         m.insert("application/x-zip-compressed", "zip");
         m.insert("application/xml", "xml");
+        m.insert("application/x-zip", "zip");
         m.insert("application/zip", "zip");
         m.insert("audio/aac", "aac");
         m.insert("audio/aiff", "aiff");
@@ -247,9 +252,11 @@ lazy_static! {
         m.insert("audio/voc", "voc");
         m.insert("audio/voxware", "vox");
         m.insert("audio/wav", "wav");
+        m.insert("audio/wave", "wav");
         m.insert("audio/x-adpcm", "snd");
         m.insert("audio/x-aiff", "aiff");
         m.insert("audio/x-au", "au");
+        m.insert("audio/x-flac", "flac");
         m.insert("audio/x-gsm", "gsm");
         m.insert("audio/x-jam", "jam");
         m.insert("audio/x-liveaudio", "lam");
@@ -268,6 +275,7 @@ lazy_static! {
         m.insert("audio/x-twinvq", "vqf");
         m.insert("audio/x-voc", "voc");
         m.insert("audio/x-wav", "wav");
+        m.insert("audio/x-wave", "wav");
         m.insert("audio/xm", "xm");
         m.insert("chemical/x-pdb", "pdb");
         m.insert("drawing/x-dwf (old)", "dwf");
