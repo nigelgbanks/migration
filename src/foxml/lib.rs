@@ -1,8 +1,5 @@
 // @see https://wiki.lyrasis.org/display/FEDORA35/FOXML+Reference+Example
 #[macro_use]
-extern crate strum_macros;
-
-#[macro_use]
 extern crate lazy_static;
 
 pub mod extensions;
