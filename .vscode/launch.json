@@ -5,49 +5,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug",
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'migrate'",
-      "cargo": {
-        "args": ["build", "--bin=migrate", "--package=migrate"],
-        "filter": {
-          "name": "migrate",
-          "kind": "bin"
-        }
-      },
+      "program": "${workspaceRoot}/target/debug/migration",
       "args": [
-        "/home/nbanks/Projects/archden/fedora",
-        "/home/nbanks/Projects/archden/content"
+        "migrate",
+        "--input",
+        "/tmp/migrate/fedora",
+        "--output",
+        "/tmp/migrate/drupal"
       ],
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "Debug unit tests in executable 'migrate'",
-      "cargo": {
-        "args": ["test", "--no-run", "--bin=migrate", "--package=migrate"],
-        "filter": {
-          "name": "migrate",
-          "kind": "bin"
-        }
-      },
-      "args": [],
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "Debug unit tests in library 'lib'",
-      "cargo": {
-        "args": ["test", "--no-run", "--lib", "--package=lib"],
-        "filter": {
-          "name": "lib",
-          "kind": "lib"
-        }
-      },
-      "args": [],
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceRoot}",
     }
   ]
 }

@@ -8,6 +8,7 @@ extern crate lazy_static;
 pub mod extensions;
 
 use chrono::{DateTime, FixedOffset};
+use core::panic;
 use serde::Deserialize;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
@@ -15,16 +16,16 @@ use std::path::Path;
 use std::str::FromStr;
 use strum_macros::{EnumDiscriminants, EnumString};
 
-#[derive(Debug, Display, EnumDiscriminants)]
+#[derive(Debug, EnumDiscriminants)]
 pub enum FoxmlError {
-    DeserializeError(quick_xml::DeError), // Could not deserialize file to Foxml object.
-    IOError(std::io::Error),              // Could not read file.
-    QuickXMLError(quick_xml::Error),      // Wrap QuickXML error.
-    Utf8Error(std::str::Utf8Error),       // Could not decode byte string into utf8.
+    DeserializeError(serde_path_to_error::Error<quick_xml::DeError>), // Could not deserialize file to Foxml object.
+    IOError(std::io::Error),                                          // Could not read file.
+    QuickXMLError(quick_xml::Error),                                  // Wrap QuickXML error.
+    Utf8Error(std::str::Utf8Error), // Could not decode byte string into utf8.
 }
 
-impl From<quick_xml::DeError> for FoxmlError {
-    fn from(error: quick_xml::DeError) -> Self {
+impl From<serde_path_to_error::Error<quick_xml::DeError>> for FoxmlError {
+    fn from(error: serde_path_to_error::Error<quick_xml::DeError>) -> Self {
         FoxmlError::DeserializeError(error)
     }
 }
@@ -44,6 +45,17 @@ impl From<std::io::Error> for FoxmlError {
 impl From<std::str::Utf8Error> for FoxmlError {
     fn from(error: std::str::Utf8Error) -> Self {
         FoxmlError::Utf8Error(error)
+    }
+}
+
+impl std::fmt::Display for FoxmlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            FoxmlError::DeserializeError(err) => err.fmt(f),
+            FoxmlError::IOError(err) => err.fmt(f),
+            FoxmlError::QuickXMLError(err) => err.fmt(f),
+            FoxmlError::Utf8Error(err) => err.fmt(f),
+        }
     }
 }
 
@@ -197,7 +209,12 @@ pub struct Foxml {
 
 impl Foxml {
     pub fn new(content: &str) -> Result<Foxml, FoxmlError> {
-        Ok(quick_xml::de::from_str::<Foxml>(&content)?)
+        let deserializer = &mut quick_xml::de::Deserializer::from_reader(content.as_bytes());
+        let result: Result<Foxml, _> = serde_path_to_error::deserialize(deserializer);
+        match result {
+            Ok(foxml) => Ok(foxml),
+            Err(err) => Err(err.into()),
+        }
     }
 
     pub fn from_path(path: &Path) -> Result<Foxml, FoxmlError> {
