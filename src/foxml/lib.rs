@@ -173,7 +173,7 @@ pub struct FoxmlDatastreamVersion {
     #[serde(rename = "MIMETYPE")]
     pub mime_type: String,
     #[serde(rename = "SIZE")]
-    pub size: Option<i32>,
+    pub size: Option<i64>,
     #[serde(rename = "FORMAT_URI")]
     pub format: Option<String>,
     #[serde(rename = "$value")]
