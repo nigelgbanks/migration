@@ -278,6 +278,7 @@ lazy_static! {
         m.insert("audio/x-wave", "wav");
         m.insert("audio/xm", "xm");
         m.insert("chemical/x-pdb", "pdb");
+        m.insert("chemical/x-cdx", "cdx");
         m.insert("drawing/x-dwf (old)", "dwf");
         m.insert("i-world/i-vrml", "ivr");
         m.insert("image/bmp", "bmp");
@@ -338,6 +339,7 @@ lazy_static! {
         m.insert("text/ecmascript", "js");
         m.insert("text/html", "html");
         m.insert("text/javascript", "js");
+        m.insert("text/jpg", "jpg");
         m.insert("text/mcf", "mcf");
         m.insert("text/pascal", "pas");
         m.insert("text/plain", "txt");
